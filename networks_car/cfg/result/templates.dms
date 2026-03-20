@@ -61,20 +61,18 @@ container Templates : using = "units;Classifications;geography"
 			unit<uint32> UniqueLocation := unique(Locations/values);
 
 			unit<uint32> RoadsWithLocations := connect(MakeConnectedRoads/result/line, OrgToDest/UniqueLocation/values)
-			,	DialogData = "uniondata"
-			,	DialogType = "Map"
 			{
-				attribute<OSM/roadtype>  roadtype         := MakeDefined(MakeConnectedRoads/result/roadtype[nr_OrgEntity], value(69,OSM/roadtype));
-				attribute<km_hr>         max_speed        := IsDefined(MakeConnectedRoads/result/max_speed[nr_OrgEntity]) ? MakeConnectedRoads/result/max_speed[nr_OrgEntity] : 25[km_hr];
+				attribute<OSM/roadtype>  roadtype         := MakeDefined(MakeConnectedRoads/result/roadtype[arc_rel], value(69,OSM/roadtype));
+				attribute<km_hr>         max_speed        := IsDefined(MakeConnectedRoads/result/max_speed[arc_rel]) ? MakeConnectedRoads/result/max_speed[arc_rel] : 25[km_hr];
 			}
 
-			unit <uint32> LinkSet := arc2segm(RoadsWithLocations/UnionData)
+			unit <uint32> LinkSet := arc2segm(RoadsWithLocations/geometry)
 			,	DialogData = "segments"
 			,	DialogType = "Map"
 			{
 				attribute<rdc>           segments (arc)               := points2sequence(PointSet/Point, PointSet/SequenceNr, PointSet/Ordinal);
-				attribute<km_hr>         max_speed                    := RoadsWithLocations/max_speed[SequenceNr];
-				attribute<OSM/roadtype>  roadtype                     := RoadsWithLocations/roadtype[SequenceNr];
+				attribute<km_hr>         max_speed                    := RoadsWithLocations/max_speed[sequence_rel];
+				attribute<OSM/roadtype>  roadtype                     := RoadsWithLocations/roadtype[sequence_rel];
 				attribute<s>             impedance_link               := arc_length(segments, m) / value(max_speed, m_s);
 				
 				unit<uint32> PointSet := Union_Unit(LinkSet, LinkSet)

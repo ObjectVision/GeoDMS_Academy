@@ -19,7 +19,7 @@ container Analysis : Using = "Units;SourceData;Geography"
 		);
 		
 	unit<uint64> Dijkstra_cut := 
-		dijkstra_m64('bidirectional(link_flag);startPoint(Node_rel);endPoint(Node_rel);cut(OrgZone_max_imp);od:OrgZone_rel,DstZone_rel'
+		impedance_matrix_od64('bidirectional(link_flag);startPoint(Node_rel);endPoint(Node_rel);cut(OrgZone_max_imp);od:OrgZone_rel,DstZone_rel'
 			, NetworkSpec/OrgToDest/impedance
 			, NetworkSpec/OrgToDest/F1
 			, NetworkSpec/OrgToDest/F2
@@ -35,7 +35,7 @@ container Analysis : Using = "Units;SourceData;Geography"
 	}
 	
 	unit<uint64> Dijkstra_fullOD := //calculation a full origin-destination matrix
-		dijkstra_m64('bidirectional(link_flag);startPoint(Node_rel);endPoint(Node_rel);od:impedance,OrgZone_rel,DstZone_rel'
+		impedance_matrix_od64('bidirectional(link_flag);startPoint(Node_rel);endPoint(Node_rel);od:impedance,OrgZone_rel,DstZone_rel'
 			, NetworkSpec/OrgToDest/impedance
 			, NetworkSpec/OrgToDest/F1
 			, NetworkSpec/OrgToDest/F2
@@ -68,7 +68,7 @@ container Analysis : Using = "Units;SourceData;Geography"
 	}
 	
 	unit<uint64> Dijkstra_limit :=
-		dijkstra_m64('bidirectional(link_flag);startPoint(Node_rel):max_imp;endPoint(Node_rel);limit(OrgZone_max_mass,DstZone_mass)'
+		impedance_matrix_od64('bidirectional(link_flag);startPoint(Node_rel):max_imp;endPoint(Node_rel);limit(OrgZone_max_mass,DstZone_mass)'
 			, NetworkSpec/OrgToDest/impedance
 			, NetworkSpec/OrgToDest/F1
 			, NetworkSpec/OrgToDest/F2
@@ -82,7 +82,7 @@ container Analysis : Using = "Units;SourceData;Geography"
 	container Dijkstra_nearest
 	{
 		attribute<float32> TraveltimeToNearestDest (NetworkSpec/OrgToDest/NodeSet) := 
-			dijkstra_s('bidirectional(link_flag);startPoint(Node_rel)'
+			impedance_table('bidirectional(link_flag);startPoint(Node_rel)'
 				, NetworkSpec/OrgToDest/impedance
 				, NetworkSpec/OrgToDest/F1
 				, NetworkSpec/OrgToDest/F2
