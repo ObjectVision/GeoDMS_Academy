@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<DocType name="GeoDmsMetaInfo">
+<DefaultInfo>
+	<FullName>/SourceData/Grondgebruik/BBG/Dominant/MakeShare_LU_type/j2017/agriculture
+	</FullName>
+	<GeoDmsVersion>GeoDms 8.036 [Sep 16 2022 15:23:33]
+	</GeoDmsVersion>
+	<SessionStartTime>09/19/22-15:03:06
+	</SessionStartTime>
+	<CurrentTime>09/19/22-15:19:19
+	</CurrentTime>
+	<StatusFlags>0x65ff = AdminMode SuspendForGUI ShowStateColors TraceLogFile TreeViewVisible DetailsVisible EventLogVisible ToolBarVisible MultiThreading1 MultiThreading2 
+	</StatusFlags>
+</DefaultInfo>
+<Software>
+	<GeoDmsVersion>8.036
+	</GeoDmsVersion>
+</Software>
+<Config>
+	<FullName>/SourceData/Grondgebruik/BBG/Dominant/MakeShare_LU_type/j2017/agriculture
+	</FullName>
+	<Expr>(sum(bbg2017_10m_10k == 6[LandUsePreparation/CBSKlasse/gg_10k] ? 1f : 0f, rdc_10m/rdc_100m_rel) / 100f)
+	</Expr>
+</Config>
+<Environment>
+	<Processor>Intel64 Family 6 Model 158 Stepping 10, GenuineIntel
+	</Processor>
+	<User>jipcl
+	</User>
+	<ComputerName>JIP-LAPTOP
+	</ComputerName>
+</Environment>
+<Svn>
+	<RevisionInfo>SubWCRev: &apos;c:\GeoDMS\ProjDir\RSLight2021_ontwikkel_3&apos;<BR/>
+		Last committed at revision 9078<BR/>
+		Updated to revision 9079<BR/>
+		Local modifications found<BR/>
+		
+	</RevisionInfo>
+</Svn>
+</DocType>

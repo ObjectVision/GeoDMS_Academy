@@ -1,0 +1,46 @@
+container Geography: Using = "Units"
+{
+	// reference WMS layer
+	#include<wmts_layer.dms>
+	
+	unit<fpoint> rdc_meter_base : SpatialReference   = "EPSG:28992", DialogData = "wmts_layer";
+	unit<fpoint> rdc_meter      := range(rdc_meter_base, point_xy(0f,300000f), point_xy(280000f,625000f));
+	unit<spoint> rdc_100m       := grid_100m/domain;
+	
+	parameter<m> x_min := 0[m];
+	parameter<m> x_max := 280000[m];
+	parameter<m> y_min := 300000[m];
+	parameter<m> y_max := 625000[m];
+	
+	container grid_100m      := define_grid(100[m] , 100[m] , .);
+
+	template define_grid
+	{
+		// begin case parameters
+		parameter<m> gridsizeX;
+		parameter<m> gridsizeY;
+		container src;
+		// end case parameters
+
+		parameter<int16> nr_cols := int16((src/x_max - src/x_min) / gridsizeX);
+		parameter<int16> nr_rows := int16((src/y_max - src/y_min) / gridsizeY);
+
+		unit<spoint> domain :=
+			range(
+				 gridset(
+					 rdc_meter
+					,point_xy(float32(gridsizeX), float32(-gridsizeY), rdc_meter)
+					,point_xy(src/x_min, src/y_max, rdc_meter)
+					,spoint
+				)
+				,point_xy(0s, 0s)
+				,point_xy(nr_cols,nr_rows)
+			)
+		,	DialogData = "rdc_meter"
+		{
+			parameter<m2> NrMeter2PerCell := gridsizeX[m] * gridsizeY[m];
+			parameter<ha> NrHaPerCell     := convert(NrMeter2PerCell, ha);
+		}
+	}
+	
+}

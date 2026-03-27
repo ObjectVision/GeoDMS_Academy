@@ -1,0 +1,76 @@
+container GeoDMS_Academy_MetaScripting
+{ 
+	container Units
+	{
+		unit<float32> m  := BaseUnit('m', float32);
+		unit<float32> m2 := m * m;
+		unit<Float32> ha := 10000.0 * m2, Label = "Hectare";
+	}
+
+	#include <Geography.dms>
+	
+	container Classifications
+	{
+		unit<uint8> lu_class : nrofrows = 4
+		{
+			attribute<string>  Label       : ['absent (< 5%)', 'low (5-25%)', 'medium (25-60%)', 'high (> 60%)'];
+			attribute<float32> ClassBreaks : [0.0, 0.05, 0.25, 0.60], DialogType = "Classification";
+			attribute<uint32>  BrushColor  : [rgb(220,220,220), rgb(180,225,180),rgb(80,180,80),rgb(0,100,0)], DialogType = "BrushColor";
+		}
+	}
+	
+	container SourceData 
+	: using = "geography"
+	{
+		unit<uint32> Regions 
+		: StorageName = "%ProjDir%/data/CBS_COROP_2012.shp"
+		, StorageType = "gdal.vect"
+		, StorageReadOnly = "true"
+		, DialogData = "rdc_meter"
+		{
+			attribute<.> per_rdc_100m (rdc_100m) := poly2grid(geometry, rdc_100m);
+		}
+	}
+	
+	container residential
+	: using = "units;geography;sourcedata;Classifications"
+	{
+		attribute<float32> lu_fraction (rdc_100m)
+		: StorageName = "%ProjDir%/data/share_lu_2017_residential.tif"
+		, StorageType = "gdal.grid"
+		, StorageReadOnly = "true";
+		
+		attribute<ha>       surface_ha              (rdc_100m) := lu_fraction * rdc_100m/NrHaPerCell;
+		attribute<bool>     IsDominant              (rdc_100m) := lu_fraction > 0.5f;
+		attribute<lu_class> class_rel               (rdc_100m) := classify(lu_fraction, lu_class/ClassBreaks);
+		attribute<float32>  mean_fraction_per_region (Regions) := mean(lu_fraction, Regions/per_rdc_100m);
+	}
+	
+	container nature
+	: using = "units;geography;sourcedata;Classifications"
+	{
+		attribute<float32> lu_fraction (rdc_100m)
+		: StorageName = "%ProjDir%/data/share_lu_2017_nature.tif"
+		, StorageType = "gdal.grid"
+		, StorageReadOnly = "true";
+		
+		attribute<ha>       surface_ha              (rdc_100m) := lu_fraction * rdc_100m/NrHaPerCell;
+		attribute<bool>     IsDominant              (rdc_100m) := lu_fraction > 0.5f;
+		attribute<lu_class> class_rel               (rdc_100m) := classify(lu_fraction, lu_class/ClassBreaks);
+		attribute<float32>  mean_fraction_per_region (Regions) := mean(lu_fraction, Regions/per_rdc_100m);
+	}
+	
+	container agriculture
+	: using = "units;geography;sourcedata;Classifications"
+	{
+		attribute<float32> lu_fraction (rdc_100m)
+		: StorageName = "%ProjDir%/data/share_lu_2017_agriculture.tif"
+		, StorageType = "gdal.grid"
+		, StorageReadOnly = "true";
+		
+		attribute<ha>       surface_ha              (rdc_100m) := lu_fraction * rdc_100m/NrHaPerCell;
+		attribute<bool>     IsDominant              (rdc_100m) := lu_fraction > 0.5f;
+		attribute<lu_class> class_rel               (rdc_100m) := classify(lu_fraction, lu_class/ClassBreaks);
+		attribute<float32>  mean_fraction_per_region (Regions) := mean(lu_fraction, Regions/per_rdc_100m);
+	}
+}
