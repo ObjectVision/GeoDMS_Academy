@@ -16,7 +16,7 @@ container GeoDMS_Academy_Allocation
 		unit<Float32> claimHa       := Ha;
 		unit<Float32> claimHa2      := Ha * Ha;
 		unit<Int8>    LossOrGain    : range = "[-1, 1)", cdf = "Classifications/LossOrGain_Class/Classes";
-		unit<Float32> Potentiaal    : cdf = "Classifications/Potentiaal10K/Classes";
+		unit<Float32> Potentiaal;
 	}
 	
 	container Classifications : using = "units"
