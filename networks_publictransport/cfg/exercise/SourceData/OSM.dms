@@ -1,45 +1,5 @@
-// container OSM
-// {
-
-	// unit<uint32> OSM_fss 
-	// :	StorageName = "= '%ProjDir%/Data/Pedestrian_network_20200117.fss'"
-	// ,	StorageReadOnly = "true"
-	// {
-		// attribute<geometries/rdc>               line     (arc);
-		// attribute<geometries/rdc>               geometry (arc) := bg_simplify_linestring(line, 2.0);
-		// attribute<classifications/OSM/wegtype>  wegtype;
-		
-		// attribute<bool> IsRandstad := any(seq2point_simpl/IsRandstad, seq2point_simpl/SequenceNr);
-		
-		// attribute<bool> NotUsefull_pedestrianpaths := wegtype == /Classifications/osm/wegtype/V/cycleway
-														// || wegtype == /Classifications/osm/wegtype/V/service
-														// || wegtype == /Classifications/osm/wegtype/V/primary;
-		
-		
-		// unit<uint32> seq2point_simpl := sequence2points(geometry)
-		// {
-			// attribute<bool> IsRandstad := IsDefined(point_in_polygon(point, /SourceData/RegioIndelingen/Read_Provincie_GML/sub/geometry));
-		// }
-		
-		// unit<uint32> sub := subset(IsRandstad && !NotUsefull_pedestrianpaths)
-		// {
-			// attribute<geometries/rdc>               geometry (arc) := ../geometry[nr_OrgEntity];
-			// attribute<classifications/OSM/wegtype>  wegtype:= ../wegtype[nr_OrgEntity];
-		// }
-	// }
-	
-	
-		
-		
-	// unit<uint32> OSM_gpkg := OSM_fss/sub
-	// ,	StorageName = "= '%ProjDir%/Data/Pedestrian_network_20200117.gpkg'"
-	// , StorageType = "gdalwrite.vect"
-	// {
-		// attribute<geometries/rdc>               geometry (arc) := OSM_fss/sub/geometry;
-		// attribute<classifications/OSM/wegtype>  wegtype := OSM_fss/sub/wegtype;
-		
 	unit<uint32> OSM
-	:	StorageName = "= '%SourceDataDir%/GeoDMS_Academy/Pedestrian_network_20200117.gpkg'"
+	:	StorageName = "=ModelParameters/SourceDataFolder+'/Pedestrian_network_20200117.gpkg'"
 	,	StorageType = "gdal.vect"
 	,	StorageReadOnly = "true"
 	,	SyncMode = "alltables"
@@ -63,7 +23,7 @@
 				{
 					attribute<geometries/rdc>   point        := Union_Data(pointset, LinkSet/point, LinkSet/nextpoint);
 					attribute<bool>             isConnected  := isNull(rlookup(point, NodesNotConnected/point));
-					attribute<Lines>            roadsnr      := Union_Data(pointset, LinkSet/SequenceNr, LinkSet/SequenceNr);
+					attribute<OSM>              roadsnr      := Union_Data(pointset, LinkSet/sequence_rel, LinkSet/sequence_rel);
 					attribute<LinkSet>          ArcID        := value(ID(pointset) % nrofrows(LinkSet), LinkSet);
 					attribute<uint32>           VolgNr       := ID(pointset) / nrofrows(LinkSet);
 				}
@@ -75,10 +35,10 @@
 			{
 				attribute<geometries/rdc>   Values;
 				attribute<Linkset>          LinkSetnr := rlookup(Values, LinkSet/point);
-				attribute<Lines>            roadsnr := LinkSet/SequenceNr[LinkSetnr];
+				attribute<OSM>              roadsnr := LinkSet/sequence_rel[LinkSetnr];
 			}
-			attribute<NodeSet> F1(LinkSet)  := rlookup(LinkSet/point,     NodeSet/Values);
-			attribute<NodeSet> F2(LinkSet)  := rlookup(LinkSet/nextpoint, NodeSet/Values);
+			attribute<NodeSet> F1 (LinkSet)  := rlookup(LinkSet/point,     NodeSet/Values);
+			attribute<NodeSet> F2 (LinkSet)  := rlookup(LinkSet/nextpoint, NodeSet/Values);
 
 			unit<uint32> networks := connected_parts(F1, F2)
 			{
@@ -99,4 +59,3 @@
 			attribute<float32>                length                        := arc_length(geometry, float32);
 		}
 	}
- // }

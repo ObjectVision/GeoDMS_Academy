@@ -47,9 +47,9 @@ container NetworkSetup : using = "units;SourceData;Classifications"
 					
 					attribute<Time>                       Duration_Walk     := OD_path/Duration[OD_rel];
 					attribute<m>                          Distance          := OD_path/Distance[OD_rel];
-					attribute<Time>                       FromTime_Walk     := toTime_Walk[int32] - Duration_Walk[int32] > 0i
-																				? toTime_Walk - Duration_Walk 
-																				: (toTime_Walk[int32] - Duration_Walk[int32] + (#Time / 2)[int32])[uint32];
+					attribute<Time>                       FromTime_Walk     := (toTime_Walk[int32] - Duration_Walk[int32] > 0i
+																				? toTime_Walk[int32] - Duration_Walk[int32]
+																				: toTime_Walk[int32] - Duration_Walk[int32] + (#Time / 2)[int32])[uint32];
 					attribute<Time>                       toTime_Walk       := ScheduledSpaceTimeEvents/TimeRef[SSTE_rel];
 					attribute<string>                     LabelText         := OD_path/labeltext[OD_rel], DialogType = "LabelText";
 					
@@ -78,9 +78,9 @@ container NetworkSetup : using = "units;SourceData;Classifications"
 					
 					attribute<Time>                       Duration_Bike     := (Distance / ModelParameters/Advanced/BikingSpeed)[Time];
 					attribute<m>                          Distance          := OD_path/Distance[OD_rel];
-					attribute<Time>                       FromTime_Bike     := toTime_Bike[int32] - Duration_Bike[int32] > 0i
-																				? toTime_Bike - Duration_Bike 
-																				: (toTime_Bike[int32] - Duration_Bike[int32] + (#Time / 2)[int32])[uint32];
+					attribute<Time>                       FromTime_Bike     := (toTime_Bike[int32] - Duration_Bike[int32] > 0i
+																				? toTime_Bike[int32] - Duration_Bike[int32]
+																				: toTime_Bike[int32] - Duration_Bike[int32] + (#Time / 2)[int32])[uint32];
 					attribute<Time>                       toTime_Bike       := ScheduledSpaceTimeEvents/TimeRef[SSTE_rel];
 					attribute<string>                     LabelText         := OD_path/labeltext[OD_rel], DialogType = "LabelText";
 					
@@ -112,9 +112,7 @@ container NetworkSetup : using = "units;SourceData;Classifications"
 																				: OD_path/Duration[OD_rel];
 					attribute<m>                          Distance          := OD_path/Distance[OD_rel];
 					attribute<Time>                       FromTime_Walk     := ScheduledSpaceTimeEvents/TimeRef[SSTE_rel];
-					attribute<Time>                       ToTime_Walk       := FromTime_Walk + Duration_Walk > #Time
-																				? FromTime_Walk + Duration_Walk - #Time
-																				: FromTime_Walk + Duration_Walk;
+					attribute<Time>                       ToTime_Walk       := mod(FromTime_Walk + Duration_Walk, #Time);
 					attribute<string>                     LabelText         := OD_path/labeltext[OD_rel], DialogType = "LabelText";
 					
 					attribute<upoint>                     MomentxPlace      := point_xy(FromTime_Walk, Place_rel, upoint);
@@ -143,9 +141,7 @@ container NetworkSetup : using = "units;SourceData;Classifications"
 					attribute<Time>                       Duration_Bike     := (Distance / ModelParameters/Advanced/BikingSpeed)[Time];
 					attribute<m>                          Distance          := OD_path/Distance[OD_rel];
 					attribute<Time>                       FromTime_Bike     := ScheduledSpaceTimeEvents/TimeRef[SSTE_rel];
-					attribute<Time>                       ToTime_Bike       := FromTime_Bike + Duration_Bike > #Time
-																				? FromTime_Bike + Duration_Bike - #Time
-																				: FromTime_Bike + Duration_Bike;
+					attribute<Time>                       ToTime_Bike       := mod(FromTime_Bike + Duration_Bike, #Time);
 					attribute<string>                     LabelText         := OD_path/labeltext[OD_rel], DialogType = "LabelText";
 					
 					attribute<upoint>                     MomentxPlace      := point_xy(FromTime_Bike, Place_rel, upoint);

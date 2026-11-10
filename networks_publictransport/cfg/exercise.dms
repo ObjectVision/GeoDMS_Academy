@@ -26,7 +26,7 @@ container GeoDMS_Academy_Network_PublicTransport
 				attribute<.>    ordinal      := id(.);
 			}
 			
-			attribute<rdc> polygon (poly)      := points2sequence(point_set/point, point_set/sequence_rel, point_set/ordinal);
+			attribute<rdc> polygon (poly)      := points2polygon(point_set/point, point_set/sequence_rel, point_set/ordinal);
 		}
 		
 		container NL_grid: Using = "units"
@@ -83,52 +83,18 @@ container GeoDMS_Academy_Network_PublicTransport
 				
 			}
 			
-			unit<uint32> points_100m := Subset(isDefined(domain/id))
+			unit<uint32> points_100m := select_with_org_rel(isDefined(domain/id))
 			,	DialogData = "geometry"
 			,	DialogType = "map"
 			{
-				attribute<rdc> 	                geometry  := domain/point_rd[nr_OrgEntity];	
+				attribute<rdc> 	                geometry  := domain/point_rd[org_rel];
 				attribute<rdc>                  point     := geometry;
-				attribute<uint32>               id        := domain/identificatie[nr_OrgEntity];
-				
+				attribute<uint32>               id        := domain/identificatie[org_rel];
+
 				attribute<float32>              x         := PointCol(geometry);
 				attribute<float32>              y         := PointRow(geometry);
-				
-				attribute<uint32>               nr_inwoners := MakeDefined(rjoin(geometry, /SourceData/inwoners/geometry, /SourceData/inwoners/nr_inwoners),0);
-				
+
 				attribute<NL_grid/domain>       NL_grid_domain_rel  := geometry[NL_grid/domain];
-				attribute<bool>                 IsNederland         := IsDefined(point_in_polygon(geometry, SourceData/RegioIndelingen/Provincies/Geometry));
-				
-				unit<uint32> MakePoints_100m_NL := subset(IsNederland)
-				,	DialogData = "geometry"
-				,	DialogType = "map"
-				,	FreeData = "false"
-				,	StorageName     = "%LocalDataDir%/OVGTFS/Points_100m_NL.fss"
-				{
-					attribute<rdc> 	                geometry  := points_100m/geometry[nr_OrgEntity];
-					attribute<rdc> 	                point     := geometry;
-					attribute<uint32>               id        := points_100m/id[nr_OrgEntity];
-					attribute<NL_grid/domain>       NL_grid_domain_rel  := geometry[NL_grid/domain];
-					attribute<string>               label     := 'p'+string(id), DialogType = "LabelText";
-					attribute<string>               name      := label;
-					attribute<uint32>               nr_inwoners := ../nr_inwoners[nr_OrgEntity];
-				}
-				unit<uint32> Points_100m_NL
-				:	DialogData = "geometry"
-				,	DialogType = "map"
-				,	FreeData = "false"
-				,	StorageName     = "%LocalDataDir%/OVGTFS/Points_100m_NL.fss"
-				,	StorageReadOnly = "true"
-				{
-					attribute<rdc> 	                geometry;
-					attribute<NL_grid/domain>       per_grid := geometry[NL_grid/domain];
-					attribute<rdc> 	                point;
-					attribute<uint32>               id;
-					attribute<NL_grid/domain>       NL_grid_domain_rel;
-					attribute<string>               label: DialogType = "LabelText";
-					attribute<string>               name;
-					attribute<uint32>               nr_inwoners;
-				}
 			}
 			
 			///////////////////////
@@ -159,12 +125,12 @@ container GeoDMS_Academy_Network_PublicTransport
 				attribute<string>          id_name          := 'p' + string(identificatie);
 			}
 			
-			unit<uint32> points_500m := Subset(isDefined(domain_500m/id))
+			unit<uint32> points_500m := select_with_org_rel(isDefined(domain_500m/id))
 			,	DialogData = "geometry"
 			,	DialogType = "map"
 			{
-				attribute<rdc> 	                geometry  := domain_500m/point_rd[nr_OrgEntity];	
-				attribute<uint32>               id        := domain_500m/identificatie[nr_OrgEntity];
+				attribute<rdc> 	                geometry  := domain_500m/point_rd[org_rel];	
+				attribute<uint32>               id        := domain_500m/identificatie[org_rel];
 				
 				attribute<float32>              x         := PointCol(geometry);
 				attribute<float32>              y         := PointRow(geometry);
@@ -199,12 +165,12 @@ container GeoDMS_Academy_Network_PublicTransport
 				attribute<uint32>          identificatie    := (pointcol(id)[uint32] + 1) + ((pointrow(id)[uint32]) * 250);
 			}
 			
-			unit<uint32> points_1000m := Subset(isDefined(domain_1000m/id))
+			unit<uint32> points_1000m := select_with_org_rel(isDefined(domain_1000m/id))
 			,	DialogData = "geometry"
 			,	DialogType = "map"
 			{
-				attribute<rdc> 	                geometry  := domain_1000m/point_rd[nr_OrgEntity];	
-				attribute<uint32>               id        := domain_1000m/identificatie[nr_OrgEntity];
+				attribute<rdc> 	                geometry  := domain_1000m/point_rd[org_rel];	
+				attribute<uint32>               id        := domain_1000m/identificatie[org_rel];
 				
 				attribute<float32>              x         := PointCol(geometry);
 				attribute<float32>              y         := PointRow(geometry);
@@ -239,12 +205,12 @@ container GeoDMS_Academy_Network_PublicTransport
 				attribute<uint32>          identificatie    := (pointcol(id)[uint32] + 1) + ((pointrow(id)[uint32]) * 250);
 			}
 			
-			unit<uint32> points_5000m := Subset(isDefined(domain_5000m/id))
+			unit<uint32> points_5000m := select_with_org_rel(isDefined(domain_5000m/id))
 			,	DialogData = "geometry"
 			,	DialogType = "map"
 			{
-				attribute<rdc> 	                geometry  := domain_5000m/point_rd[nr_OrgEntity];	
-				attribute<uint32>               id        := domain_5000m/identificatie[nr_OrgEntity];
+				attribute<rdc> 	                geometry  := domain_5000m/point_rd[org_rel];	
+				attribute<uint32>               id        := domain_5000m/identificatie[org_rel];
 				
 				attribute<float32>              x         := PointCol(geometry);
 				attribute<float32>              y         := PointRow(geometry);
@@ -259,6 +225,7 @@ container GeoDMS_Academy_Network_PublicTransport
 	
 	container ModelParameters : using = "units"
 	{
+		parameter<string>   SourceDataFolder             := '%SourceDataDir%/GeoDMS_Academy/networks_publictransport', Descr = "Folder with the source data of this module: the GTFS feed, the pedestrian network, inhabitants, PC4 points and provinces.";
 		parameter<string>   FileDate                     := '20191007';
 		parameter<string>   AnalysisDate                 := '20191008';
 
@@ -360,16 +327,11 @@ container GeoDMS_Academy_Network_PublicTransport
 				attribute<min_f>  ModeMax  := ='union_data(.,MaxWalkingTime_Org2Stop,MaxBikingTime_Org2Stop,MaxWalkingTime_Stop2Dest,MaxBikingTime_Stop2Dest)';
 			}
 			
-			unit<uint32> Export_CombinationTypes : nrofrows = 6 //Geef hieraan welke combinaties van vervoersmiddelen er gegeneerd moeten worden. Bij combinaties, wordt er per OD-paar de korste reistijd gekozen.
+			unit<uint32> Export_CombinationTypes : nrofrows = 1 //Geef hieraan welke combinaties van vervoersmiddelen er gegeneerd moeten worden. Bij combinaties, wordt er per OD-paar de korste reistijd gekozen.
 			{
 				attribute<string> name : 
 				[
-					'W_W'                     //direct lopen vanaf org naar dest.
-					,'B_B'                     //direct fietsen vanaf org naar dest.
-					,'W_OV_W'                  //vanaf org lopen, dan OV, dan lopen naar dest.
-					,'B_OV_W'                  //vanaf org fietsen, dan OV, dan lopen naar dest.
-					,'W_OV_W_with_WW'          //vanaf org lopen, dan OV, dan lopen naar dest; gecombineerd met direct lopen vanaf org naar dest. (alle voorzieningen en banen)
-					,'B_OV_W_with_BB'          //vanaf org fietsen, dan OV, dan lopen naar dest; gecombineerd met direct fietsen vanaf org naar dest.
+					'W_OV_W'                  //vanaf org lopen, dan OV, dan lopen naar dest.
 				];
 			}
 		}

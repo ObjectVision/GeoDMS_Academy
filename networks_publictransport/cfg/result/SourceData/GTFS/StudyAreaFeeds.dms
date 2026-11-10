@@ -29,10 +29,10 @@ container StudyAreaFeeds
 		{
 			attribute<uint32> nStops     := pcount(GridId);
 			attribute<uint32> nTransfers := nTop + nRight + nBottom + nLeft + (sub_or_null(nStops,1));
-			attribute<uint32> nTop       := potential(float32(nStops), float32(Templates/Neighbourhood/Top))[uint32];
-			attribute<uint32> nRight     := potential(float32(nStops), float32(Templates/Neighbourhood/Right))[uint32];
-			attribute<uint32> nBottom    := potential(float32(nStops), float32(Templates/Neighbourhood/Bottom))[uint32];
-			attribute<uint32> nLeft      := potential(float32(nStops), float32(Templates/Neighbourhood/Left))[uint32];
+			attribute<uint32> nTop       := MakeDefined(nStops[(id(.) + point_xy( 0s,  1s, spoint))[StopsGrid]], 0); // the same shifts as CreateTransfersSet/Directions
+			attribute<uint32> nRight     := MakeDefined(nStops[(id(.) + point_xy( 1s,  0s, spoint))[StopsGrid]], 0);
+			attribute<uint32> nBottom    := MakeDefined(nStops[(id(.) + point_xy( 0s, -1s, spoint))[StopsGrid]], 0);
+			attribute<uint32> nLeft      := MakeDefined(nStops[(id(.) + point_xy(-1s,  0s, spoint))[StopsGrid]], 0);
 			attribute<uint32> uniId      := cumulate(const(1,.,uint32))-1;
 		}
 	}

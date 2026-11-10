@@ -19,8 +19,8 @@ Template StaticNetsCreator : using = "geometries"
 		attribute<ScheduledSpaceTimeEvents> from_sst   := rlookup(point_xy(depTime, fromStop, upoint), ScheduledSpaceTimeEvents/Values);
 		attribute<ScheduledSpaceTimeEvents> to_sst     := rlookup(point_xy(arrTime, toStop, upoint), ScheduledSpaceTimeEvents/Values);
 		attribute<s_f>                      Duration   := depTime <= arrTime 
-															? float32(arrTime - depTime)[s_f]
-															: float32((arrTime + #Time) - depTime)[s_f];
+															? (float32(arrTime) - float32(depTime))[s_f]
+															: (float32(arrTime + #Time) - float32(depTime))[s_f];
 		attribute<string>                   LabelText  := 'Scheduled: ' + Time/LabelText[depTime] + ' @ ' + Stops/Name[fromStop] + ' to ' + Time/LabelText[arrTime] + ' @ ' + Stops/Name[toStop], DialogType = "LabelText";
 		
 		unit<uint32> findUniqueSpaceTimeEvents := union_unit(ScheduledLinks, ScheduledLinks)
@@ -48,20 +48,20 @@ Template StaticNetsCreator : using = "geometries"
 	
 	container CreateTransfersSet 
 	{
-		unit<uint32> TransferFromStops := subset(inStops/nTransfers > 0)
+		unit<uint32> TransferFromStops := select_with_org_rel(inStops/nTransfers > 0)
 		, DialogData = "point"
 		, DialogType = "map" 
 		{
-			attribute<rdc>  point          := inStops/point[Nr_OrgEntity];
-			attribute<uint32>    nTransfers     := inStops/nTransfers[Nr_OrgEntity];
-			attribute<string>    LabelText      := inStops/LabelText[Nr_OrgEntity], DialogType = "LabelText";
-			attribute<StopsGrid> GridId         := inStops/GridId[Nr_OrgEntity];
-			attribute<uint32>    Grid1D         := inStops/Grid1D[Nr_OrgEntity];
-			attribute<uint32>    cumu_in_grid   := inStops/cumu_in_grid[Nr_OrgEntity];
-			attribute<upoint>    unique_id      := inStops/unique_id[Nr_OrgEntity];
+			attribute<rdc>  point          := inStops/point[org_rel];
+			attribute<uint32>    nTransfers     := inStops/nTransfers[org_rel];
+			attribute<string>    LabelText      := inStops/LabelText[org_rel], DialogType = "LabelText";
+			attribute<StopsGrid> GridId         := inStops/GridId[org_rel];
+			attribute<uint32>    Grid1D         := inStops/Grid1D[org_rel];
+			attribute<uint32>    cumu_in_grid   := inStops/cumu_in_grid[org_rel];
+			attribute<upoint>    unique_id      := inStops/unique_id[org_rel];
 			attribute<uint32>    first_transfer := cumulate(nTransfers) - nTransfers;
-			attribute<uint32>    nEvents        := pcount(ScheduledSpaceTimeEvents/StopRef)[Nr_OrgEntity];
-			attribute<ModesList/List_selectie> Mode      := inStops/mode[nr_OrgEntity];
+			attribute<uint32>    nEvents        := pcount(ScheduledSpaceTimeEvents/StopRef)[org_rel];
+			attribute<ModesList/List_selectie> Mode      := inStops/mode[org_rel];
 		}
 		
 		unit<spoint> StopsGrid := inStops/StopsGrid;
@@ -75,10 +75,12 @@ Template StaticNetsCreator : using = "geometries"
 		}
 		
 		unit<uint32> TransferPaths := range(uint32, 0, sum(TransferFromStops/nTransfers))
+		, DialogData = "Line"
+		, DialogType = "map" 
 		{
 			attribute<TransferFromStops>  first_from_stop    := rlookup(id(.), TransferFromStops/first_transfer);
 			attribute<TransferFromStops>  from_trans_StopRef := cumulate(uint32(IsDefined(first_from_stop))) - 1;
-			attribute<inStops>            from_StopRef       := TransferFromStops/Nr_OrgEntity[from_trans_StopRef];
+			attribute<inStops>            from_StopRef       := TransferFromStops/org_rel[from_trans_StopRef];
 			attribute<ModesList/List_selectie>     from_Mode          := TransferFromStops/Mode[from_trans_StopRef];
 			attribute<ModesList/List_selectie>     to_Mode            := inStops/Mode[to_StopRef];
 			
@@ -101,11 +103,12 @@ Template StaticNetsCreator : using = "geometries"
 			attribute<uint32>             nBottom            := StopsGrid/nBottom[from_GridId];
 			attribute<uint32>             nLeft              := StopsGrid/nLeft[from_GridId];
 			attribute<uint32>             first_trans        := TransferFromStops/first_transfer[from_trans_StopRef];
+			attribute<uint32>             trans_nr           := id(.) - first_trans; // number of this path among the transfer paths of its from stop: first the stops in the cell above, then right, below, left and in the own cell
 			attribute<Directions>         quad               := switch( //top, right, bottom, left, middle
-																	 case(nTop > 0   	&& nTop    > (id(.) - first_trans), uint32(0)) 
-																	,case(nRight > 0 	&& nRight  > (id(.) - (first_trans + nTop)), uint32(1))
-																	,case(nBottom > 0 	&& nBottom > (id(.) - (first_trans + nRight + nTop)), uint32(2))
-																	,case(nLeft > 0 	&& nLeft   > (id(.) - (first_trans + nBottom + nRight + nTop)), uint32(3)) 
+																	 case(trans_nr < nTop, uint32(0))
+																	,case(trans_nr < nTop + nRight, uint32(1))
+																	,case(trans_nr < nTop + nRight + nBottom, uint32(2))
+																	,case(trans_nr < nTop + nRight + nBottom + nLeft, uint32(3))
 																	,4
 																)[Directions];
 			attribute<StopsGrid>          to_GridId     := (spoint(from_GridId)+Directions/point[quad])[StopsGrid];
@@ -113,7 +116,7 @@ Template StaticNetsCreator : using = "geometries"
 			attribute<upoint>             to_unique_id  := point_xy(seq2, to_Grid1d, upoint);
 			attribute<inStops>            to_StopRef    := rlookup(to_unique_id, inStops/unique_id);
 				
-			attribute<uint32>             seq1          := id(.) - switch(case(quad = 0, first_trans), case(quad = 1, first_trans + nTop), case(quad = 2, first_trans + nTop + nRight), case(quad = 3, first_trans + nTop + nRight + nBottom), first_trans + nTop + nRight + nBottom + nLeft);
+			attribute<uint32>             seq1          := trans_nr - switch(case(quad = 0, uint32(0)), case(quad = 1, nTop), case(quad = 2, nTop + nRight), case(quad = 3, nTop + nRight + nBottom), nTop + nRight + nBottom + nLeft);
 			attribute<uint32>             seq2          := quad = 4 && seq1 >= inStops/cumu_in_grid[from_StopRef] ? seq1 + 1 : seq1;
 			
 			attribute<string>             LabelText        := 'Transfer from ' + inStops/LabelText[from_StopRef] + ' to ' + inStops/LabelText[to_StopRef];
@@ -140,7 +143,7 @@ Template StaticNetsCreator : using = "geometries"
 			attribute<ScheduledSpaceTimeEvents> SSTE_Ref          := rlookup(point_xy(cumu_events, fromStop, upoint), ScheduledSpaceTimeEvents/unique_id);
 			attribute<Time>                     fromTime          := ScheduledSpaceTimeEvents/TimeRef[SSTE_Ref];
 			attribute<s_f>                      Duration          := NeedsTranferTimePenalty ? TransferPaths/minTransferTime[PathRef] + convert(ModelParameters/OngelijkvloersPenalty, s_f) : TransferPaths/minTransferTime[PathRef];
-			attribute<Time>                     toTime            := fromTime + Duration[Time] < #Time ? fromTime + Duration[Time] : fromTime + Duration[Time] -  #Time;
+			attribute<Time>                     toTime            := mod(fromTime + Duration[Time], #Time);
 			attribute<string>                   LabelText         := 'Transfer: ' + Time/LabelText[fromTime] + ' @ ' + Stops/Name[fromStop] + ' to ' + Time/LabelText[toTime] + ' @ ' + Stops/Name[toStop], DialogType = "LabelText";
 		}
 	}
@@ -206,7 +209,7 @@ Template StaticNetsCreator : using = "geometries"
 			attribute<rdc>          ToPoint   := Stops/Point[ToStop];
 			attribute<Time>         FromTime  := TimeRef;
 			attribute<Time>         ToTime    := TimeRef[NextMoment];
-			attribute<s_f>          Duration  := FromTime <= ToTime ? float32(ToTime - FromTime)[s_f] : float32((ToTime + #Time) - FromTime)[s_f]; // duration in seconds
+			attribute<s_f>          Duration  := FromTime <= ToTime ? (float32(ToTime) - float32(FromTime))[s_f] : (float32(ToTime + #Time) - float32(FromTime))[s_f]; // duration in seconds
 			attribute<string>       LabelText := 'Waiting at stop: ' + Stops/Name[FromStop] + ' from ' + Time/LabelText[FromTime] + ' to ' + Time/LabelText[ToTime], DialogType = "LabelText";
 		}
 		unit<uint32> NodeSet:= unique(doubledLinks/MomentXPlace), DialogData = "Place", DialogType = "map"

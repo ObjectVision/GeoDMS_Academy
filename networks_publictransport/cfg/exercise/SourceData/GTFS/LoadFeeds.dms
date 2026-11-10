@@ -47,11 +47,10 @@ container LoadFeeds : using = "classifications"
 	{
 		unit<uint32> File_Structure;
 		parameter<File_Structure> inFile;
-		parameter<string> file_name;
 		////
 		
 		unit<uint32> data
-		:	StorageName = "= '%SourceDataDir%/GeoDMS_Academy/GTFS_feed/'+ModelParameters/FileDate+'/'+File_Structure/Name[inFile]+'.gpkg'"
+		:	StorageName = "=ModelParameters/SourceDataFolder+'/GTFS_feed/'+ModelParameters/FileDate+'/'+File_Structure/Name[inFile]+'.gpkg'"
 		, StorageType = "gdal.vect"
 		, StorageReadOnly = "True"
 		{
@@ -76,13 +75,13 @@ container LoadFeeds : using = "classifications"
 		attribute<bool>     InStudyArea   	:= IsDefined(StudyArea_rel);
 		attribute<bool>		TripInStudyArea	:= any(AllStopTimes/TripInStudyArea && (AllStopTimes/SelToday || AllStopTimes/SelYesterday), AllStopTimes/pStopRef);
 	}
-	unit<uint32> Stops := subset(protoStops/StopUsed && protoStops/TripInStudyArea)
+	unit<uint32> Stops := select_with_org_rel(protoStops/StopUsed && protoStops/TripInStudyArea)
 	, DialogData = "point"
 	, DialogType = "map" 
 	{
-		attribute<string>           stop_name       := protoStops/stop_name[Nr_OrgEntity];
-		attribute<string>           stop_id         := protoStops/stop_id[Nr_OrgEntity];
-		attribute<rdc>              point           := protoStops/point[Nr_OrgEntity];
+		attribute<string>           stop_name       := protoStops/stop_name[org_rel];
+		attribute<string>           stop_id         := protoStops/stop_id[org_rel];
+		attribute<rdc>              point           := protoStops/point[org_rel];
 		attribute<string>           LabelText       := stop_name, DialogType = "LabelText";
 		attribute<uint32>           NrTripsPerDay   := pcount(LoadFeeds/AllStopTimes/seltoday ? LoadFeeds/AllStopTimes/StopRef : (0/0))[Stops];
 		attribute<ModesList/List_selectie>   Mode            := modus(LoadFeeds/AllStopTimes/Mode, LoadFeeds/AllStopTimes/StopRef);
@@ -92,11 +91,11 @@ container LoadFeeds : using = "classifications"
 	unit<uint32> ScheduledLinks := union_unit(AllStopTimes/Yesterday/Links, AllStopTimes/Today/Links)
 	{
 		attribute<rdc>       geometry (arc) := union_data(., AllStopTimes/Yesterday/Links/geometry, 		AllStopTimes/Today/Links/geometry);
-		attribute<Stops>     fromStop       := union_data(., AllStopTimes/Yesterday/Links/fromStop, 	AllStopTimes/Today/Links/fromStop);
-		attribute<Stops>     toStop         := union_data(., AllStopTimes/Yesterday/Links/toStop, 		AllStopTimes/Today/Links/toStop);
-		attribute<Time>      depTime        := union_data(., AllStopTimes/Yesterday/Links/depTime, 	AllStopTimes/Today/Links/depTime);
-		attribute<Time>      arrTime        := union_data(., AllStopTimes/Yesterday/Links/arrTime, 	AllStopTimes/Today/Links/arrTime);
-		attribute<uint32>    TripRef        := union_data(., AllStopTimes/Yesterday/Links/TripRef,  	AllStopTimes/Today/Links/TripRef);
+		attribute<Stops>     fromStop   := union_data(., AllStopTimes/Yesterday/Links/fromStop, 	AllStopTimes/Today/Links/fromStop);
+		attribute<Stops>     toStop     := union_data(., AllStopTimes/Yesterday/Links/toStop, 		AllStopTimes/Today/Links/toStop);
+		attribute<Time>      depTime    := union_data(., AllStopTimes/Yesterday/Links/depTime, 	AllStopTimes/Today/Links/depTime);
+		attribute<Time>      arrTime    := union_data(., AllStopTimes/Yesterday/Links/arrTime, 	AllStopTimes/Today/Links/arrTime);
+		attribute<uint32>    TripRef    := union_data(., AllStopTimes/Yesterday/Links/TripRef,  	AllStopTimes/Today/Links/TripRef);
 		attribute<ModesList/List_selectie> Mode       := Trips/Mode[TripRef];
 		attribute<string>     RouteName       := Trips/RouteName[TripRef];
 	}
@@ -170,7 +169,7 @@ container LoadFeeds : using = "classifications"
 		
 		attribute<upoint>           ThisStopUni     := point_xy(TripRef, ordered_ord, upoint);
 		attribute<upoint>           NextStopUni     := point_xy(TripRef, ordered_ord+1, upoint);
-		attribute<upoint>           PrevStopUni     := point_xy(TripRef, ordered_ord-1, upoint);
+		attribute<upoint>           PrevStopUni     := point_xy(TripRef, sub_or_null(ordered_ord,1), upoint);
 		attribute<AllStopTimes>     NextStopId      := rlookup(NextStopUni, ThisStopUni);
 		attribute<AllStopTimes>     PrevStopId      := rlookup(PrevStopUni, ThisStopUni);
 		attribute<rdc>         FromPoint       := Stops/point[StopRef];
@@ -180,7 +179,7 @@ container LoadFeeds : using = "classifications"
 		
 		container departureTime := getTimes(AllStopTimes,ReadFSS/Stop_times/data/departure_time);
 		container arrivalTime   := getTimes(AllStopTimes,ReadFSS/Stop_times/data/arrival_time);
-		
+	
 		container Yesterday 
 		{
 			unit<uint32> Links := select_with_attr_by_org_rel(..,SelYesterday && !EndPoint && TripInStudyArea)
@@ -215,47 +214,6 @@ container LoadFeeds : using = "classifications"
 				attribute<uint32> Ord    := union_data(., const(0,Links,uint32), const(1,Links,uint32));
 			}
 		}
-		
-		// container Yesterday 
-		// {
-			// unit<uint32> Links := subset(SelYesterday && !EndPoint && TripInStudyArea)
-			// {
-				// attribute<rdc> FromPoint: 			expr = "AllStopTimes/FromPoint[Nr_OrgEntity]";
-				// attribute<rdc> ToPoint:			expr = "AllStopTimes/NextPoint[Nr_OrgEntity]";
-				// attribute<rdc>	Line (arc):			expr = "points2sequence(GenLines/Points,GenLines/Seq,GenLines/Ord)";
-				// attribute<Trips>	TripRef:			expr = "AllStopTimes/TripRef[Nr_OrgEntity]";
-				// attribute<Stops> 	fromStop:			expr = "AllStopTimes/StopRef[Nr_OrgEntity]";
-				// attribute<Stops>	toStop:				expr = "AllStopTimes/StopRef[NextStopId[Nr_OrgEntity]]";
-				// attribute<Time> 	depTime: 			expr = "departureTime/TimesVector/TimeRef[Nr_OrgEntity] - (24*60*60)";
-				// attribute<Time> 	arrTime: 			expr = "arrivalTime/TimesVector/TimeRef[NextStopId[Nr_OrgEntity]] - (24*60*60)";
-			// }
-			// unit<uint32> GenLines: 	expr = "union_unit(Links, Links)" 
-			// {
-				// attribute<rdc> 		Points:		expr = "union_data(., Links/FromPoint, Links/ToPoint)";
-				// attribute<Links>			Seq:		expr = "union_data(., id(Links), id(Links))";
-				// attribute<uint32> 			Ord:		expr = "union_data(., const(0,Links,uint32), const(1,Links,uint32))";
-			// }
-		// }
-		// container Today  
-		// {
-			// unit<uint32> Links: expr = "subset(SelToday && !EndPoint && TripInStudyArea)" 
-			// {
-				// attribute<rdc> FromPoint: 			expr = "AllStopTimes/FromPoint[Nr_OrgEntity]";
-				// attribute<rdc> ToPoint:			expr = "AllStopTimes/NextPoint[Nr_OrgEntity]";
-				// attribute<rdc>	Line (arc):			expr = "points2sequence(GenLines/Points,GenLines/Seq,GenLines/Ord)";
-				// attribute<Trips>	TripRef:			expr = "AllStopTimes/TripRef[Nr_OrgEntity]";
-				// attribute<Stops> 	fromStop:			expr = "AllStopTimes/StopRef[Nr_OrgEntity]";
-				// attribute<Stops>	toStop:				expr = "AllStopTimes/StopRef[NextStopId[Nr_OrgEntity]]";
-				// attribute<Time> 	depTime: 			expr = "departureTime/TimesVector/TimeRef[Nr_OrgEntity]";
-				// attribute<Time> 	arrTime: 			expr = "arrivalTime/TimesVector/TimeRef[NextStopId[Nr_OrgEntity]]";
-			// }
-			// unit<uint32> GenLines: 	expr = "union_unit(Links, Links)" 
-			// {
-				// attribute<rdc> 		Points:		expr = "union_data(., Links/FromPoint, Links/ToPoint)";
-				// attribute<Links>			Seq:		expr = "union_data(., id(Links), id(Links))";
-				// attribute<uint32> 			Ord:		expr = "union_data(., const(0,Links,uint32), const(1,Links,uint32))";
-			// }
-		// }
 	}
 	
 	Template getTimes 
@@ -275,24 +233,3 @@ container LoadFeeds : using = "classifications"
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

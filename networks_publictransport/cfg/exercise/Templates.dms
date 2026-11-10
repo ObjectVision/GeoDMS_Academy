@@ -1,7 +1,5 @@
 container Templates: Using = "Units;Classifications"
 {   
-	#include <netwerk.dms>
-	
 	Template createNetwork : using = "geometries"
 	{
 		unit<uint32>      inStart;
@@ -23,16 +21,15 @@ container Templates: Using = "Units;Classifications"
 		{
 			attribute<rdc>        geometry (arc) := Roads/geometry;
 			attribute<float32>    length         := arc_length(geometry, m);
-			parameter<string>     speed_str      := 'const(ModelParameters/WalkingSpeed_kmhr,.)';
+			parameter<string>     speed_str      := 'const(ModelParameters/'+TravelMode+'Speed_kmhr,.)';
 			attribute<km_hr>      speed          := =speed_str;
 		}
 		
 		unit<uint32> Network := connect(Lines/geometry, points/geometry)
 		{
-			attribute<rdc>      geometry (arc)      := UnionData;
 			attribute<rdc>      fromPoint           := first_point(geometry);
 			attribute<rdc>      toPoint             := last_point(geometry);
-			attribute<km_hr>    speed               := Lines/speed[nr_OrgEntity];
+			attribute<km_hr>    speed               := Lines/speed[arc_rel];
 			attribute<m_s>      speed_ms            := convert(speed, m_s);
 			attribute<m>        Length              := arc_length(geometry, m);
 			attribute<s_f>      Seconds             := MakeDefined(Length / speed_ms, 1[s_f]);
@@ -53,7 +50,7 @@ container Templates: Using = "Units;Classifications"
 			unit<uint32> NetCheck := connected_parts(F1, F2);
 			
 			unit<uint32> ODMatrix :=
-				dijkstra_m('bidirectional;startPoint(Node_rel):max_imp;endPoint(Node_rel);cut(OrgZone_max_imp);limit(OrgZone_max_mass,DstZone_mass);alternative(link_imp):alt_imp;od:impedance,OrgZone_rel,DstZone_rel'
+				impedance_matrix('bidirectional;startPoint(Node_rel):max_imp;endPoint(Node_rel);cut(OrgZone_max_imp);limit(OrgZone_max_mass,DstZone_mass);alternative(link_imp):alt_imp;od:impedance,OrgZone_rel,DstZone_rel'
 					, Seconds
 					, F1
 					, F2
@@ -142,13 +139,5 @@ container Templates: Using = "Units;Classifications"
 			attribute<uint32>   Today       := uint32(uint32(ModelParameters/AnalysisDate) = nDate);  
 			attribute<uint32>   Yesterday   := uint32(uint32(ModelParameters/Advanced/PrevDate) = nDate);
 		}
-	}
-
-	unit<SPoint> Neighbourhood := range(spoint, point_xy(int16(-1), int16(-1)), point_xy(int16(2), int16(2))), Descr = "Rooks case contiguous neighbours (first order)"
-	{
-		attribute<uint32> Top     := uint32(id(.) = point_xy(int16(0),int16(1),spoint));
-		attribute<uint32> Right   := uint32(id(.) = point_xy(int16(1),int16(0),spoint));
-		attribute<uint32> Bottom  := uint32(id(.) = point_xy(int16(0),int16(-1),spoint));
-		attribute<uint32> Left    := uint32(id(.) = point_xy(int16(-1),int16(0),spoint));
 	}
 }

@@ -1,6 +1,6 @@
 Container ModesList 
 { 
-	unit<uint32> List: NrOfRows = 86 
+	unit<uint32> List: NrOfRows = 85 
 	{
 		// combines official modes list, as defined in the GTFS format, with the extended mode list, as eg used in the Vilnius feed. 
 		// For more information on the extended mode list see https://developers.google.com/transit/gtfs/reference/extended-route-types
@@ -64,7 +64,7 @@ Container ModesList
 			'400',	'Urban_Railway_Service', '', '', '','0',
 			'401',	'Metro_Service', '', '', '','0',
 			'402',	'Underground_Service', '', '', '','0',
-			'403',	'Urban_Railway_Service', '', '', '','0',
+			'403',	'Urban_Railway_Service_403', '', '', '','0',
 			'404',	'All_Urban_Railway_Services', '', '', '','0',
 			'405',	'Monorail', '', '', '','0',
 			'700',	'Bus_Service', '', '', '','0',
@@ -107,19 +107,19 @@ Container ModesList
 			'1505',	'Licensed_Taxi_Service', '', '', '','0',
 			'1506',	'Private_Hire_Service_Vehicle', '', '', '','0',
 			'1507',	'All_Taxi_Services', '', '', '','0',
-			'1700',	'Miscellaneous_Service', '', '', '''0'
+			'1700',	'Miscellaneous_Service', '', '', '','0'
 			];
 		}
 	}
 	
-	unit<uint32> List_selectie := subset(id(List) <= 5 || id(List) == 9)
+	unit<uint32> List_selectie := select_with_org_rel(id(List) <= 5 || id(List) == 9)
 	{
-		attribute<string> name         := List/Name[nr_OrgEntity];
+		attribute<string> name         := List/Name[org_rel];
 		attribute<string> Label         := name, DialogType = "LabelText";
-		// attribute<uint32> SymbolColor  := List/SymbolColor[nr_OrgEntity], DialogType = "SymbolColor";
-		attribute<uint32> PenColor  := List/BrushColor[nr_OrgEntity], DialogType = "PenColor";
-		attribute<uint32> ModeNr       := List/ModeNr[nr_OrgEntity];
-		attribute<uint8> IsGelijkvloers  := List/IsGelijkvloers[nr_OrgEntity];
+		// attribute<uint32> SymbolColor  := List/SymbolColor[org_rel], DialogType = "SymbolColor";
+		attribute<uint32> PenColor  := List/BrushColor[org_rel], DialogType = "PenColor";
+		attribute<uint32> ModeNr       := List/ModeNr[org_rel];
+		attribute<uint8> IsGelijkvloers  := List/IsGelijkvloers[org_rel];
 		container V := for_each_nedv(replace(name,';','','ú','u',' ','_','-','_','?','','/',''), String(ID(.))+'[..]', void, .);
 	}
 }

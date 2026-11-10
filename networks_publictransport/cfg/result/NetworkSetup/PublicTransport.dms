@@ -33,7 +33,7 @@ container PublicTransport : using = "Units;ModelParameters"
 		container TransitionTypes := 
 			for_each_ne(
 				Advanced/TransitionType_list/TypeMode
-				, 'Transition_T('+inTime_string+'/'+string(Advanced/TransitionType_list/TypeMode)+', '+quote(Advanced/TransitionType_list/TypeMode)+', '+quote(Advanced/TransitionType_list/Mode)+', '+string(Advanced/TransitionType_list/ModeMax)+', '+quote(Advanced/TransitionType_list/FromTime)+', '+quote(Advanced/TransitionType_list/ToTime)+', '+quote(Advanced/TransitionType_list/OrgDest)+')'
+				, 'Transition_T('+inTime_string+'/'+string(Advanced/TransitionType_list/TypeMode)+', '+quote(Advanced/TransitionType_list/TypeMode)+', '+quote(Advanced/TransitionType_list/Mode)+', '+string(convert(Advanced/TransitionType_list/ModeMax, s_f))+', '+quote(Advanced/TransitionType_list/FromTime)+', '+quote(Advanced/TransitionType_list/ToTime)+', '+quote(Advanced/TransitionType_list/OrgDest)+')'
 			);
 		
 		Template Transition_T
@@ -46,24 +46,24 @@ container PublicTransport : using = "Units;ModelParameters"
 			parameter<string> ToTime_str;
 			parameter<string> OrgDest;
 			
-			parameter<string>   Arrive_at_time_CalcStr     := replace('subset(UNIT/FT >= inTime[Time] - (0.25f * #Time[float32])[uint32] && UNIT/TT <= inTime[Time] && UNIT/FT <= inTime[Time] && UNIT/duration_TM <= MM && UNIT/FT < inTime[Time] + (0.25f * #Time[float32])[uint32])','UNIT',OD_unit_name,'FT',FromTime_str,'TT', ToTime_str,'TM',Mode,'MM', string(ModeMax));
-			parameter<string>   Departure_at_time_CalcStr  := replace('subset(UNIT/FT >= inTime[Time] && UNIT/TT >= inTime[Time] && UNIT/duration_TM <= MM && UNIT/FT < inTime[Time] + (#Time / 4)[uint32])','UNIT',OD_unit_name,'FT',FromTime_str,'TT', ToTime_str,'TM',Mode,'MM', string(ModeMax));
+			parameter<string>   Arrive_at_time_CalcStr     := replace('select(UNIT/FT >= inTime[Time] - (0.25f * #Time[float32])[uint32] && UNIT/TT <= inTime[Time] && UNIT/FT <= inTime[Time] && UNIT/duration_TM <= MM && UNIT/FT < inTime[Time] + (0.25f * #Time[float32])[uint32])','UNIT',OD_unit_name,'FT',FromTime_str,'TT', ToTime_str,'TM',Mode,'MM', string(ModeMax));
+			parameter<string>   Departure_at_time_CalcStr  := replace('select(UNIT/FT >= inTime[Time] && UNIT/TT >= inTime[Time] && UNIT/duration_TM <= MM && UNIT/FT < inTime[Time] + (#Time / 4)[uint32])','UNIT',OD_unit_name,'FT',FromTime_str,'TT', ToTime_str,'TM',Mode,'MM', string(ModeMax));
 			parameter<string>   CalcStr  := ModelParameters/Arrival_or_Departure_at_time == 'Arrival'
 																	? Arrive_at_time_CalcStr
 																	: Departure_at_time_CalcStr;
 
 			unit<uint32> Transition := =CalcStr
 			{
-				attribute<Org>                        Org_rel           := ='OD_unit/'+OrgDest+'_rel[nr_OrgEntity]';
-				attribute<Dest>                       Dest_rel          := ='OD_unit/'+OrgDest+'_rel[nr_OrgEntity]';
-				attribute<Stops>                      Stop_rel          := OD_unit/Stop_rel[nr_OrgEntity];
-				attribute<Places>                     Place_rel         := OD_unit/Place_rel[nr_OrgEntity];
-				attribute<geometries/rdc>             geometry (arc)    := OD_unit/geometry[nr_OrgEntity];
-				attribute<m>                          Distance          := OD_unit/Distance[nr_OrgEntity];
-				attribute<Time>                       Duration          := ='OD_unit/Duration_'+Mode+'[nr_OrgEntity]';
-				attribute<Time>                       FromTime          := ='OD_unit/'+FromTime_str+'[nr_OrgEntity]';
-				attribute<Time>                       toTime            := ='OD_unit/'+ToTime_str+'[nr_OrgEntity]';
-				attribute<string>                     LabelText         := OD_unit/LabelText[nr_OrgEntity], DialogType = "LabelText";
+				attribute<Org>                        Org_rel           := =OrgDest == 'Org'  ? 'collect_by_cond(., OD_unit/Org_rel)'  : 'const(0/0, ., Org)';
+				attribute<Dest>                       Dest_rel          := =OrgDest == 'Dest' ? 'collect_by_cond(., OD_unit/Dest_rel)' : 'const(0/0, ., Dest)';
+				attribute<Stops>                      Stop_rel          := collect_by_cond(., OD_unit/Stop_rel);
+				attribute<Places>                     Place_rel         := collect_by_cond(., OD_unit/Place_rel);
+				attribute<geometries/rdc>             geometry (arc)    := collect_by_cond(., OD_unit/geometry);
+				attribute<m>                          Distance          := collect_by_cond(., OD_unit/Distance);
+				attribute<Time>                       Duration          := ='collect_by_cond(., OD_unit/Duration_'+Mode+')';
+				attribute<Time>                       FromTime          := ='collect_by_cond(., OD_unit/'+FromTime_str+')';
+				attribute<Time>                       toTime            := ='collect_by_cond(., OD_unit/'+ToTime_str+')';
+				attribute<string>                     LabelText         := collect_by_cond(., OD_unit/LabelText), DialogType = "LabelText";
 				attribute<upoint>                     MomentxPlace_O2S  := point_xy(toTime, Place_rel, upoint);
 				attribute<upoint>                     MomentxPlace_S2D  := point_xy(FromTime, Place_rel, upoint);
 				attribute<NodeSet>                    NodeRef_O2S       := rlookup(MomentxPlace_O2S, NodeSet/values);
@@ -83,14 +83,14 @@ container PublicTransport : using = "Units;ModelParameters"
 		
 			//// CREATE OD ////
 			unit<uint64> OD_traveltime_W_OV_W := 
-				dijkstra_m64('directed;startPoint(Node_rel,impedance,OrgZone_rel);endPoint(Node_rel,impedance,DstZone_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
+				impedance_matrix_od64('directed;startPoint(Node_rel,impedance,OrgZone_rel);endPoint(Node_rel,impedance,DstZone_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
 					, StaticNet_subset/Duration[float32]
 					, StaticNet_subset/F1
 					, StaticNet_subset/F2
 					
 					, TransitionTypes/Org2Stop_W/Transition/NodeRef_O2S, TransitionTypes/Org2Stop_W/Transition/Duration[float32], TransitionTypes/Org2Stop_W/Transition/Org_rel     //sP node_rel, impedance, OrgZone_rel
 					, TransitionTypes/Stop2Dest_W/Transition/NodeRef_S2D, TransitionTypes/Stop2Dest_W/Transition/Duration[float32], TransitionTypes/Stop2Dest_W/Transition/Dest_rel //eP node_rel, impedance, DstZone_rel
-					, ModelParameters/MaxOVTime
+					, convert(ModelParameters/MaxOVTime, s_f)
 				)
 			{
 				attribute<float32>          traveltime_min               := impedance / 60f;
@@ -101,28 +101,30 @@ container PublicTransport : using = "Units;ModelParameters"
 				attribute<float32>          values                       := dest/nr_values[float32][DstZone_rel];
 				attribute<float32>          decay_function               := traveltime_min == 0f ? 1f : 1f / (1f + exp(ov_a + ov_b*log(traveltime_min) + ov_c*traveltime_min));
 				attribute<float32>          values_decayed               := MakeDefined(values * decay_function,0f);
+				attribute<float32>          values_reached_decayed (Org) := sum(values_decayed, OrgZone_rel);
+				attribute<float32>          values_reached (Org)         := sum(values, OrgZone_rel);
 				
-				unit<uint64> UniqueOD := subset(IsDefined(OD_nummer))
+				unit<uint64> UniqueOD := select_with_org_rel(IsDefined(OD_nummer))
 				{
-					attribute<float32>          Best_nr_items_of_interest_decayed   := ../values_decayed[nr_OrgEntity];
-					attribute<float32>          Best_nr_items_of_interest           := ../values[nr_OrgEntity];
-					attribute<float32>          ShortestTraveltime                  := ../traveltime_min[nr_OrgEntity];
-					attribute<string>           ModeUsed                            := ../ModeUsed[nr_OrgEntity];
-					attribute<Combine_OrgDest>  OD_nummer                           := ../OD_nummer[nr_OrgEntity];
+					attribute<float32>          Best_nr_items_of_interest_decayed   := ../values_decayed[org_rel];
+					attribute<float32>          Best_nr_items_of_interest           := ../values[org_rel];
+					attribute<float32>          ShortestTraveltime                  := ../traveltime_min[org_rel];
+					attribute<string>           ModeUsed                            := ../ModeUsed[org_rel];
+					attribute<Combine_OrgDest>  OD_nummer                           := ../OD_nummer[org_rel];
 					attribute<string>           OrgName                             := Combine_OrgDest/OrgName[od_nummer];
 					attribute<string>           DestName                            := Combine_OrgDest/DestName[od_nummer];
 				}
 			}
 			
 			unit<uint64> OD_traveltime_B_OV_W := 
-				dijkstra_m64('directed;startPoint(Node_rel,impedance,OrgZone_rel);endPoint(Node_rel,impedance,DstZone_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
+				impedance_matrix_od64('directed;startPoint(Node_rel,impedance,OrgZone_rel);endPoint(Node_rel,impedance,DstZone_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
 					, StaticNet_subset/Duration[float32]
 					, StaticNet_subset/F1
 					, StaticNet_subset/F2
 					
 					, TransitionTypes/Org2Stop_B/Transition/NodeRef_O2S, TransitionTypes/Org2Stop_B/Transition/Duration[float32], TransitionTypes/Org2Stop_B/Transition/Org_rel     //sP node_rel, impedance, OrgZone_rel
 					, TransitionTypes/Stop2Dest_W/Transition/NodeRef_S2D, TransitionTypes/Stop2Dest_W/Transition/Duration[float32], TransitionTypes/Stop2Dest_W/Transition/Dest_rel //eP node_rel, impedance, DstZone_rel
-					, ModelParameters/MaxOVTime
+					, convert(ModelParameters/MaxOVTime, s_f)
 				)
 			{
 				attribute<float32>          traveltime_min               := impedance / 60f;
@@ -133,28 +135,30 @@ container PublicTransport : using = "Units;ModelParameters"
 				attribute<float32>          values                       := dest/nr_values[float32][DstZone_rel];
 				attribute<float32>          decay_function               := traveltime_min == 0f ? 1f : 1f / (1f + exp(ov_a + ov_b*log(traveltime_min) + ov_c*traveltime_min));
 				attribute<float32>          values_decayed               := MakeDefined(values * decay_function,0f);
+				attribute<float32>          values_reached_decayed (Org) := sum(values_decayed, OrgZone_rel);
+				attribute<float32>          values_reached (Org)         := sum(values, OrgZone_rel);
 				
-				unit<uint64> UniqueOD := subset(IsDefined(OD_nummer))
+				unit<uint64> UniqueOD := select_with_org_rel(IsDefined(OD_nummer))
 				{
-					attribute<float32>          Best_nr_items_of_interest_decayed   := ../values_decayed[nr_OrgEntity];
-					attribute<float32>          Best_nr_items_of_interest           := ../values[nr_OrgEntity];
-					attribute<float32>          ShortestTraveltime                  := ../traveltime_min[nr_OrgEntity];
-					attribute<string>           ModeUsed                            := ../ModeUsed[nr_OrgEntity];
-					attribute<Combine_OrgDest>  OD_nummer                           := ../OD_nummer[nr_OrgEntity];
+					attribute<float32>          Best_nr_items_of_interest_decayed   := ../values_decayed[org_rel];
+					attribute<float32>          Best_nr_items_of_interest           := ../values[org_rel];
+					attribute<float32>          ShortestTraveltime                  := ../traveltime_min[org_rel];
+					attribute<string>           ModeUsed                            := ../ModeUsed[org_rel];
+					attribute<Combine_OrgDest>  OD_nummer                           := ../OD_nummer[org_rel];
 					attribute<string>           OrgName                             := Combine_OrgDest/OrgName[od_nummer];
 					attribute<string>           DestName                            := Combine_OrgDest/DestName[od_nummer];
 				}
 			}
 			
 			unit<uint64> OD_traveltime_W_W := 
-				dijkstra_m64('bidirectional;startPoint(Node_rel);endPoint(Node_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
+				impedance_matrix_od64('bidirectional;startPoint(Node_rel);endPoint(Node_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
 					, RoadNets_Org2Dest_W/Network/Duration[float32]
 					, RoadNets_Org2Dest_W/Network/F1
 					, RoadNets_Org2Dest_W/Network/F2
 					
 					, RoadNets_Org2Dest_W/Network/org_node 
 					, RoadNets_Org2Dest_W/Network/dst_node 
-					, ModelParameters/MaxWalkingTime_Org2Dest
+					, convert(ModelParameters/MaxWalkingTime_Org2Dest, s_f)
 				)
 			{
 				attribute<float32>          traveltime_min               := impedance / 60f;
@@ -165,28 +169,30 @@ container PublicTransport : using = "Units;ModelParameters"
 				attribute<float32>          values                       := dest/nr_values[float32][DstZone_rel];
 				attribute<float32>          decay_function               := traveltime_min == 0f ? 1f : 1f / (1f + exp(ov_a + ov_b*log(traveltime_min) + ov_c*traveltime_min));
 				attribute<float32>          values_decayed               := MakeDefined(values * decay_function,0f);
+				attribute<float32>          values_reached_decayed (Org) := sum(values_decayed, OrgZone_rel);
+				attribute<float32>          values_reached (Org)         := sum(values, OrgZone_rel);
 				
-				unit<uint64> UniqueOD := subset(IsDefined(OD_nummer))
+				unit<uint64> UniqueOD := select_with_org_rel(IsDefined(OD_nummer))
 				{
-					attribute<float32>          Best_nr_items_of_interest_decayed   := ../values_decayed[nr_OrgEntity];
-					attribute<float32>          Best_nr_items_of_interest           := ../values[nr_OrgEntity];
-					attribute<float32>          ShortestTraveltime                  := ../traveltime_min[nr_OrgEntity];
-					attribute<string>           ModeUsed                            := ../ModeUsed[nr_OrgEntity];
-					attribute<Combine_OrgDest>  OD_nummer                           := ../OD_nummer[nr_OrgEntity];
+					attribute<float32>          Best_nr_items_of_interest_decayed   := ../values_decayed[org_rel];
+					attribute<float32>          Best_nr_items_of_interest           := ../values[org_rel];
+					attribute<float32>          ShortestTraveltime                  := ../traveltime_min[org_rel];
+					attribute<string>           ModeUsed                            := ../ModeUsed[org_rel];
+					attribute<Combine_OrgDest>  OD_nummer                           := ../OD_nummer[org_rel];
 					attribute<string>           OrgName                             := Combine_OrgDest/OrgName[od_nummer];
 					attribute<string>           DestName                            := Combine_OrgDest/DestName[od_nummer];
 				}
 			}
 			
 			unit<uint64> OD_traveltime_B_B := 
-				dijkstra_m64('bidirectional;startPoint(Node_rel);endPoint(Node_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
+				impedance_matrix_od64('bidirectional;startPoint(Node_rel);endPoint(Node_rel);cut(OrgZone_max_imp);od:impedance,OrgZone_rel,DstZone_rel'
 					, RoadNets_Org2Dest_B/Network/Duration[float32]
 					, RoadNets_Org2Dest_B/Network/F1
 					, RoadNets_Org2Dest_B/Network/F2
 					
 					, RoadNets_Org2Dest_B/Network/org_node 
 					, RoadNets_Org2Dest_B/Network/dst_node 
-					, ModelParameters/MaxBikingTime_Org2Dest
+					, convert(ModelParameters/MaxBikingTime_Org2Dest, s_f)
 				)
 			{
 				attribute<float32>          traveltime_min               := impedance / 60f;
@@ -197,14 +203,16 @@ container PublicTransport : using = "Units;ModelParameters"
 				attribute<float32>          values                       := dest/nr_values[float32][DstZone_rel];
 				attribute<float32>          decay_function               := traveltime_min == 0f ? 1f : 1f / (1f + exp(ov_a + ov_b*log(traveltime_min) + ov_c*traveltime_min));
 				attribute<float32>          values_decayed               := MakeDefined(values * decay_function,0f);
+				attribute<float32>          values_reached_decayed (Org) := sum(values_decayed, OrgZone_rel);
+				attribute<float32>          values_reached (Org)         := sum(values, OrgZone_rel);
 				
-				unit<uint64> UniqueOD := subset(IsDefined(OD_nummer))
+				unit<uint64> UniqueOD := select_with_org_rel(IsDefined(OD_nummer))
 				{
-					attribute<float32>          Best_nr_items_of_interest_decayed   := ../values_decayed[nr_OrgEntity];
-					attribute<float32>          Best_nr_items_of_interest           := ../values[nr_OrgEntity];
-					attribute<float32>          ShortestTraveltime                  := ../traveltime_min[nr_OrgEntity];
-					attribute<string>           ModeUsed                            := ../ModeUsed[nr_OrgEntity];
-					attribute<Combine_OrgDest>  OD_nummer                           := ../OD_nummer[nr_OrgEntity];
+					attribute<float32>          Best_nr_items_of_interest_decayed   := ../values_decayed[org_rel];
+					attribute<float32>          Best_nr_items_of_interest           := ../values[org_rel];
+					attribute<float32>          ShortestTraveltime                  := ../traveltime_min[org_rel];
+					attribute<string>           ModeUsed                            := ../ModeUsed[org_rel];
+					attribute<Combine_OrgDest>  OD_nummer                           := ../OD_nummer[org_rel];
 					attribute<string>           OrgName                             := Combine_OrgDest/OrgName[od_nummer];
 					attribute<string>           DestName                            := Combine_OrgDest/DestName[od_nummer];
 				}
@@ -236,6 +244,7 @@ container PublicTransport : using = "Units;ModelParameters"
 					attribute<string>       ModeUsed                          := ArgMin1 ? Mode1 : ArgMin2 ? Mode2 : '';
 					attribute<string>       OrgName                           := Combine_OrgDest/OrgName[values];
 					attribute<string>       DestName                          := Combine_OrgDest/DestName[values];
+					attribute<Combine_OrgDest> OD_nummer                      := values;
 				}
 			}
 			
@@ -265,6 +274,7 @@ container PublicTransport : using = "Units;ModelParameters"
 					attribute<string>       ModeUsed                          := ArgMin1 ? Mode1 : ArgMin2 ? Mode2 : '';
 					attribute<string>       OrgName                           := Combine_OrgDest/OrgName[values];
 					attribute<string>       DestName                          := Combine_OrgDest/DestName[values];
+					attribute<Combine_OrgDest> OD_nummer                      := values;
 				}
 			}
 			

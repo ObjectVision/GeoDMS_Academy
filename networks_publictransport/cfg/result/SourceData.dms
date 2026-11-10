@@ -1,7 +1,7 @@
 container SourceData: Using = "Units;Classifications;geometries"
 {       
 	unit<uint32> Inhabitants
-	: StorageName = "%SourceDataDir%/GeoDMS_Academy/Inwoners_2019_500m.gpkg"
+	: StorageName = "=ModelParameters/SourceDataFolder+'/Inwoners_2019_500m.gpkg'"
 	,	StorageType     = "gdal.vect"
 	,	StorageReadOnly = "True"
 	{
@@ -29,10 +29,10 @@ container SourceData: Using = "Units;Classifications;geometries"
 		
 		parameter<string> Gridsize := ModelParameters/Advanced/Dest_location_scale;
 		
-		unit<uint32> HasValues := ='subset(HasValues_grid_'+Gridsize+' > 0 && any(IsSA, NL_grid_domain_'+Gridsize+'_rel))'
+		unit<uint32> HasValues := ='select_with_org_rel(HasValues_grid_'+Gridsize+' > 0 && any(IsSA, NL_grid_domain_'+Gridsize+'_rel))'
 		{
-			attribute<uint32> nr_values        := ='sum_values_per_grid_'+Gridsize+'[nr_OrgEntity]';
-			attribute<rdc>    geometry         := nr_OrgEntity[rdc];
+			attribute<uint32> nr_values        := ='sum_values_per_grid_'+Gridsize+'[org_rel]';
+			attribute<rdc>    geometry         := org_rel[rdc];
 			attribute<rdc>    point            := geometry;
 			attribute<uint32> identificatie    := id(.);
 			attribute<string> id_name          := 'dest' + string(identificatie);

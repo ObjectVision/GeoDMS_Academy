@@ -1,7 +1,7 @@
 container SourceData: Using = "Units;Classifications;geometries"
 {       
 	unit<uint32> Inhabitants
-	: StorageName = "%SourceDataDir%/GeoDMS_Academy/Inwoners_2019_500m.gpkg"
+	: StorageName = "=ModelParameters/SourceDataFolder+'/Inwoners_2019_500m.gpkg'"
 	,	StorageType     = "gdal.vect"
 	,	StorageReadOnly = "True"
 	{

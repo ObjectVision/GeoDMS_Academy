@@ -8,7 +8,7 @@ container Classifications: Using = "Units"
 		attribute<string> Name     : ['Undefined','Scheduled','Transfer','Stop_to_Dest','Org_to_Stop','Waiting_at_Stop','Waiting_at_Org'];
 		attribute<string> LabelText:= Name, DialogType = "LabelText";
 		attribute<uint32> PenColor : [rgb(128,128,128), rgb(200,0,0), rgb(129,129,0), rgb(0,0,128),rgb(0,0,255), rgb(128,128,128), rgb(128,128,128)], DialogType = "PenColor";
-		attribute<int16>  PenStyle : [4,0,1,2,2,0], DialogType = "PenStyle";
+		attribute<int16>  PenStyle : [4,0,1,2,2,0,0], DialogType = "PenStyle";
 		container values := for_each_nedv(Name, string(id(.)), void, .);
 	}
 }

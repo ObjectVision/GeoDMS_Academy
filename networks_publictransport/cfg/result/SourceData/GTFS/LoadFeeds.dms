@@ -47,11 +47,10 @@ container LoadFeeds : using = "classifications"
 	{
 		unit<uint32> File_Structure;
 		parameter<File_Structure> inFile;
-		parameter<string> file_name;
 		////
 		
 		unit<uint32> data
-		:	StorageName = "= '%SourceDataDir%/GeoDMS_Academy/GTFS_feed/'+ModelParameters/FileDate+'/'+File_Structure/Name[inFile]+'.gpkg'"
+		:	StorageName = "=ModelParameters/SourceDataFolder+'/GTFS_feed/'+ModelParameters/FileDate+'/'+File_Structure/Name[inFile]+'.gpkg'"
 		, StorageType = "gdal.vect"
 		, StorageReadOnly = "True"
 		{
@@ -76,13 +75,13 @@ container LoadFeeds : using = "classifications"
 		attribute<bool>     InStudyArea   	:= IsDefined(StudyArea_rel);
 		attribute<bool>		TripInStudyArea	:= any(AllStopTimes/TripInStudyArea && (AllStopTimes/SelToday || AllStopTimes/SelYesterday), AllStopTimes/pStopRef);
 	}
-	unit<uint32> Stops := subset(protoStops/StopUsed && protoStops/TripInStudyArea)
+	unit<uint32> Stops := select_with_org_rel(protoStops/StopUsed && protoStops/TripInStudyArea)
 	, DialogData = "point"
 	, DialogType = "map" 
 	{
-		attribute<string>           stop_name       := protoStops/stop_name[Nr_OrgEntity];
-		attribute<string>           stop_id         := protoStops/stop_id[Nr_OrgEntity];
-		attribute<rdc>              point           := protoStops/point[Nr_OrgEntity];
+		attribute<string>           stop_name       := protoStops/stop_name[org_rel];
+		attribute<string>           stop_id         := protoStops/stop_id[org_rel];
+		attribute<rdc>              point           := protoStops/point[org_rel];
 		attribute<string>           LabelText       := stop_name, DialogType = "LabelText";
 		attribute<uint32>           NrTripsPerDay   := pcount(LoadFeeds/AllStopTimes/seltoday ? LoadFeeds/AllStopTimes/StopRef : (0/0))[Stops];
 		attribute<ModesList/List_selectie>   Mode            := modus(LoadFeeds/AllStopTimes/Mode, LoadFeeds/AllStopTimes/StopRef);
@@ -234,24 +233,3 @@ container LoadFeeds : using = "classifications"
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -117,7 +117,7 @@ container OSM
 			['voetpad','fietspad','weg','overig','in aanbouw','gesloten'];
 		attribute<uint32> PenColor: DialogType = "PenColor", 
 			[rgb(255,255,0),rgb(255,128,0),rgb(200,0,0),rgb(128,128,128),rgb(0,200,0),rgb(0,0,200)];
-		attribute<uint32> PenWidth: expr = "const(4,.,uint32)", DialogType = "PenWidth";
+		attribute<uint32> PenWidth := const(4,.,uint32), DialogType = "PenWidth";
 	}
 	
 	unit<uint8> netwerk_type: nrofrows = 3
