@@ -13,8 +13,8 @@ container GeoDMS_Academy_Grids
 	{
 		container AHN 
 		{
-			attribute<cm_uint16> AHN3_Hulst_int (grid_05m/domain) : StorageName = "%ProjDir%/Data/AHN3_Hulst_int.tif";
-			attribute<cm_uint16> AHN3_Hulst_ruw (grid_05m/domain) : StorageName = "%ProjDir%/Data/AHN3_Hulst_ruw.tif";
+			attribute<cm_uint16> AHN3_Hulst_int (grid_05m/domain) : StorageName = "%ProjDir%/Data/AHN3_Hulst_int.tif", StorageType = "tif";
+			attribute<cm_uint16> AHN3_Hulst_ruw (grid_05m/domain) : StorageName = "%ProjDir%/Data/AHN3_Hulst_ruw.tif", StorageType = "tif";
 		}
 		
 		container BAG
