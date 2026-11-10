@@ -2,8 +2,10 @@ container data_sources_exercise
 {
 	container Geography
 	{
-		unit<fpoint> rdc_base : SpatialReference = "EPSG:28992";
-		unit<fpoint> rdc      := range(rdc_base, point(0f, 300000f), point(280000f, 625000f));
+		unit<fpoint> rdc_base : SpatialReference = "EPSG:28992"	,	DialogData = "wmts_layer";                // Rijksdriehoekstelsel, a 2D cartesian coordinate system for the netherlands
+		unit<fpoint> rdc      := range(rdc_base, point_xy(0f, 300000f), point_xy(280000f, 625000f));  // Define a 2D range consisting of 2D cartesian coordinates, used as values unit of the geometry attributes in SourceData
+
+		#include <../wmts_layer.dms>
 	}
 
 	container SourceData

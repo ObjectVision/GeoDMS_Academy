@@ -36,27 +36,59 @@ container GeoDMS_Academy_MetaScripting
 		{
 			attribute<.> per_rdc_100m (rdc_100m) := poly2grid(geometry, rdc_100m);
 		}
+
+		container LandUse // steps 1 and 2: the land-use fractions that the three case instantiations get as argument
+		{
+			attribute<float32> residential (rdc_100m)
+			: StorageName = "%ProjDir%/data/share_lu_2017_residential.tif"
+			, StorageType = "tif"
+			, StorageReadOnly = "true";
+
+			attribute<float32> nature (rdc_100m)
+			: StorageName = "%ProjDir%/data/share_lu_2017_nature.tif"
+			, StorageType = "tif"
+			, StorageReadOnly = "true";
+
+			attribute<float32> agriculture (rdc_100m)
+			: StorageName = "%ProjDir%/data/share_lu_2017_agriculture.tif"
+			, StorageType = "tif"
+			, StorageReadOnly = "true";
+		}
 	}
 
+	// steps 1 and 2: a template with the land-use fraction as case parameter, and a case instantiation per land-use type
+	template LandUse_T : using = "units;geography;sourcedata;Classifications"
+	{
+		//begin case parameters
+		attribute<float32> lu_fraction (rdc_100m);
+		//end case parameters
+
+		attribute<ha>       surface_ha              (rdc_100m) := lu_fraction * rdc_100m/NrHaPerCell;
+		attribute<bool>     IsDominant              (rdc_100m) := lu_fraction > 0.5f;
+		attribute<lu_class> class_rel               (rdc_100m) := classify(lu_fraction, lu_class/ClassBreaks);
+		attribute<float32>  mean_fraction_per_region (Regions) := mean(lu_fraction, Regions/per_rdc_100m);
+	}
+
+	container residential := LandUse_T(SourceData/LandUse/residential);
+	container nature      := LandUse_T(SourceData/LandUse/nature);
+	container agriculture := LandUse_T(SourceData/LandUse/agriculture);
+
+	// step 3: a case per land-use type in Classifications/LandUseTypes, made with for_each; the template builds the file name from its case parameter
 	container per_LandUseType :=
 		for_each_ne(
-			LandUseTypes/name
-			, 'per_LandUseType_T('+quote(LandUseTypes/name)+')'
-		), using = "units;geography;sourcedata;Classifications"
-	{
-		attribute<LandUseTypes> predominant (rdc_100m) := ='argmax('+asItemList(LandUseTypes/Name+'/lu_fraction')+')[LandUseTypes]';
+			Classifications/LandUseTypes/name
+			, 'per_LandUseType_T('+quote(Classifications/LandUseTypes/name)+')'
+		);
 
-	}
-	
-	template per_LandUseType_T
+	template per_LandUseType_T : using = "units;geography;sourcedata;Classifications"
 	{
 		//begin case parameters
 		parameter<string> LUT_name;
 		//end case parameters
-		
+
 		attribute<float32> lu_fraction (rdc_100m)
 		: StorageName = "='%ProjDir%/data/share_lu_2017_'+LUT_name+'.tif'"
-		, StorageType = "gdal.grid"
+		, StorageType = "tif"
 		, StorageReadOnly = "true";
 		
 		attribute<ha>       surface_ha              (rdc_100m) := lu_fraction * rdc_100m/NrHaPerCell;

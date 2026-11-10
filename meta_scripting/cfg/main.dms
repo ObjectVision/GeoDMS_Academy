@@ -37,7 +37,7 @@ container GeoDMS_Academy_MetaScripting
 	{
 		attribute<float32> lu_fraction (rdc_100m)
 		: StorageName = "%ProjDir%/data/share_lu_2017_residential.tif"
-		, StorageType = "gdal.grid"
+		, StorageType = "tif"
 		, StorageReadOnly = "true";
 		
 		attribute<ha>       surface_ha              (rdc_100m) := lu_fraction * rdc_100m/NrHaPerCell;
@@ -51,7 +51,7 @@ container GeoDMS_Academy_MetaScripting
 	{
 		attribute<float32> lu_fraction (rdc_100m)
 		: StorageName = "%ProjDir%/data/share_lu_2017_nature.tif"
-		, StorageType = "gdal.grid"
+		, StorageType = "tif"
 		, StorageReadOnly = "true";
 		
 		attribute<ha>       surface_ha              (rdc_100m) := lu_fraction * rdc_100m/NrHaPerCell;
@@ -65,7 +65,7 @@ container GeoDMS_Academy_MetaScripting
 	{
 		attribute<float32> lu_fraction (rdc_100m)
 		: StorageName = "%ProjDir%/data/share_lu_2017_agriculture.tif"
-		, StorageType = "gdal.grid"
+		, StorageType = "tif"
 		, StorageReadOnly = "true";
 		
 		attribute<ha>       surface_ha              (rdc_100m) := lu_fraction * rdc_100m/NrHaPerCell;

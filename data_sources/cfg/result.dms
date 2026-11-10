@@ -3,7 +3,7 @@ container data_sources_result
 	container Geography
 	{
 		unit<fpoint> rdc_base : SpatialReference = "EPSG:28992"	,	DialogData = "wmts_layer";                // Rijksdriehoekstelsel, a 2D cartesian coordinate system for the netherlands
-		unit<fpoint> rdc      := range(rdc_base, point_xy(0f, 300000f), point_xy(280000f, 625000f));  // Define a 2D range consisting of 2D cartesian coordinates, later used for the "province" domain unit geometry attribute
+		unit<fpoint> rdc      := range(rdc_base, point_xy(0f, 300000f), point_xy(280000f, 625000f));  // Define a 2D range consisting of 2D cartesian coordinates, used as values unit of the geometry attributes in SourceData
 	
 		#include <../wmts_layer.dms>
 	}
@@ -51,14 +51,69 @@ container data_sources_result
 
 	container Export
 	{
-		unit<uint32> NS_stations := SourceData/NS_station
-		,	StorageName = "%LocalDataProjDir%/NS_stations_export.shp" 
-		, 	StorageType = "gdalwrite.vect"
+		unit<uint32> NS_stations := SourceData/NS_station                  // Module 2B: the train stations as a new shapefile
+		,	StorageName = "%LocalDataProjDir%/NS_stations_export.shp"
+		,	StorageType = "gdalwrite.vect"
 		{
-			attribute<Geography/rdc>    geometry   := SourceData/NS_station/geometry;
-			attribute<string>           naam       := SourceData/NS_station/Webnaam;                                                                
-			attribute<SourceData/Corop> corop_rel  := point_in_polygon(SourceData/NS_station/geometry, SourceData/Corop/geometry), DisableStorage = "True"; // See https://www.geodms.nl/Point_in_polygon, relation for each NS Station towards what Corop geometry it lies in
-			attribute<string>           naam_corop := SourceData/Corop/statnaam[corop_rel]; // Add an attribute to the .dbf with for each NS station the corop region it is located in
-		} 
+			attribute<Geography/rdc> geometry := SourceData/NS_station/geometry;
+			attribute<string>        naam     := SourceData/NS_station/Webnaam;
+		}
+
+		unit<uint32> gemeente_export := SourceData/gemeente                // Module 2D: the municipalities as a parquet file for Python
+		,	StorageName     = "%LocalDataProjDir%/python/gemeente.parquet"
+		,	StorageType     = "gdalwrite.vect"
+		,	StorageReadOnly = "False"
+		{
+			attribute<string> GM_CODE  := SourceData/gemeente/GM_CODE;
+			attribute<string> GM_NAAM  := SourceData/gemeente/GM_NAAM;
+			attribute<int32>  AANT_INW := SourceData/gemeente/AANT_INW[int32]; // the csv column is read as string
+		}
+	}
+
+	container Preprocessing                                                // Module 2C: write the source data once to MMD
+	{
+		unit<uint32> gemeente := SourceData/gemeente                       // the csv has no geometry
+		,	StorageName = "%LocalDataProjDir%/gemeente.mmd"
+		{
+			attribute<string> GM_CODE  := SourceData/gemeente/GM_CODE;
+			attribute<int32>  AANT_INW := SourceData/gemeente/AANT_INW[int32];
+		}
+
+		unit<uint32> Corop := SourceData/Corop                             // the shapefile has no numeric attribute, so the area is calculated
+		,	StorageName = "%LocalDataProjDir%/corop.mmd"
+		{
+			attribute<Geography/rdc> geometry (poly) := SourceData/Corop/geometry;
+			attribute<string>        statnaam        := SourceData/Corop/statnaam;
+			attribute<float32>       area_km2        := area(SourceData/Corop/geometry, float32) / 1000000f;
+		}
+	}
+
+	container Model                                                        // Module 2C: read the MMD files back instead of the source files
+	{
+		unit<uint32> gemeente                                              // the attributes are declared by the file itself
+		:	StorageName     = "%LocalDataProjDir%/gemeente.mmd"
+		,	StorageReadOnly = "True";
+
+		unit<uint32> Corop
+		:	StorageName     = "%LocalDataProjDir%/corop.mmd"
+		,	StorageReadOnly = "True";
+
+		parameter<bool> gemeente_identical :=                              // true if each row read back equals the row of the csv
+			   all(union_data(SourceData/gemeente, gemeente/GM_CODE) == SourceData/gemeente/GM_CODE)
+			&& all(union_data(SourceData/gemeente, gemeente/AANT_INW) == SourceData/gemeente/AANT_INW[int32]);
+		parameter<bool> Corop_identical :=                                 // true if each region read back has the name and the area of the shapefile
+			   all(union_data(SourceData/Corop, Corop/statnaam) == SourceData/Corop/statnaam)
+			&& all(union_data(SourceData/Corop, area(Corop/geometry, float32)) == area(SourceData/Corop/geometry, float32));
+	}
+
+	container FromPython                                                   // Module 2D: read back what the script python/gemeente_share.py wrote
+	{
+		unit<uint32> gemeente_python
+		:	StorageName     = "%LocalDataProjDir%/python/gemeente_python.parquet"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True";
+
+		attribute<gemeente_python> py_rel    (SourceData/gemeente) := rlookup(SourceData/gemeente/GM_CODE, gemeente_python/GM_CODE); // the script filtered rows, so relate on the code
+		attribute<float64>         INW_SHARE (SourceData/gemeente) := py_rel -> INW_SHARE;
 	}
 }
