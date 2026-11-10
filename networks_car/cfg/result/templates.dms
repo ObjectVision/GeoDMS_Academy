@@ -48,6 +48,7 @@ container Templates : using = "units;Classifications;geography"
 				attribute<rdc>           line (arc)          := roads[org_rel];
 				attribute<OSM/roadtype>  roadtype            := roadDomain/roadtype[org_rel];
 				attribute<km_hr>         max_speed           := roadDomain/max_speed[org_rel];
+				attribute<uint32>        IsMotorway          := uint32(roadtype == OSM/roadtype/V/motorway || roadtype == OSM/roadtype/V/motorway_link);
 			}
 		}
 		
@@ -58,9 +59,13 @@ container Templates : using = "units;Classifications;geography"
 				attribute<rdc> Values := union_data(., orgLocations, destLocations);
 				
 			}
-			unit<uint32> UniqueLocation := unique(Locations/values);
+			unit<uint32> UniqueLocation := unique(Locations/values)
+			{
+				attribute<uint32> IsMotorway := const(1, ., uint32);
+			}
 
-			unit<uint32> RoadsWithLocations := connect(MakeConnectedRoads/result/line, OrgToDest/UniqueLocation/values)
+			// connect_ne connects each location to the nearest road whose IsMotorway differs from its own (1), so to the nearest road that is not a motorway: you can only get on a motorway at a junction.
+			unit<uint32> RoadsWithLocations := connect_ne(MakeConnectedRoads/result/line, MakeConnectedRoads/result/IsMotorway, UniqueLocation/values, UniqueLocation/IsMotorway)
 			{
 				attribute<OSM/roadtype>  roadtype         := MakeDefined(MakeConnectedRoads/result/roadtype[arc_rel], value(69,OSM/roadtype));
 				attribute<km_hr>         max_speed        := IsDefined(MakeConnectedRoads/result/max_speed[arc_rel]) ? MakeConnectedRoads/result/max_speed[arc_rel] : 25[km_hr];
