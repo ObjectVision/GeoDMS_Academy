@@ -92,7 +92,7 @@ container GeoDMS_Academy_Network_Car
 		}
 		
 		unit<uint32> Train_stations
-		:	StorageName = "%ProjDir%/Data/IC_Stations_2019.gpkg"
+		:	StorageName = "%ProjDir%/Data/Train_stations_2019.gpkg"
 		,	StorageType = "gdal.vect"
 		,	StorageReadOnly = "True"
 		{
