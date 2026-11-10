@@ -1,0 +1,195 @@
+container basic_analyses_grid_result
+{
+	container Units
+	{
+		unit<float32> m   := baseunit('m', float32); // metre, the metric of the RD New coordinates
+		unit<float32> m2  := m * m;
+		unit<float32> km2 := 1000000f * m2;
+	}
+
+	container Geography: using = "Units"
+	{
+		unit<fpoint> rdc_base  : SpatialReference = "EPSG:28992", DialogData = "wmts_layer";        // Rijksdriehoekstelsel (RD New), a 2D cartesian coordinate system for the Netherlands
+		unit<fpoint> rdc       := range(rdc_base, point_xy(0f, 300000f), point_xy(280000f, 625000f)); // the 2D range of the Netherlands in RD New
+
+		parameter<m> cell_size := 100[m];                                                          // the cell size of the land-use grid
+
+		unit<spoint> grid_100m :=                                                                  // a 100 m grid over the Netherlands, defined explicitly: 2800 columns and 3250 rows, the top-left corner at x = 0, y = 625000
+			range(
+				gridset(rdc, point_xy(100f, -100f, rdc), point_xy(0f, 625000f, rdc), spoint)
+				, point_xy(0s, 0s)
+				, point_xy(2800s, 3250s)
+			);
+
+		#include <../wmts_layer.dms>
+	}
+
+	container Classifications
+	{
+		unit<uint8> landuse : nrofrows = 10 // the ten land-use classes of bbg2015_100m_10k.tif; 255 marks a cell without data, which is null for uint8
+		{
+			attribute<string> name       : ['OSA', 'residential', 'otherbuiltup', 'construction', 'infrastructure', 'urbangreen', 'agriculture', 'nature', 'water', 'exteriorwater'];
+			attribute<string> label      : ['outside study area (abroad)', 'residential', 'other built-up', 'construction site', 'infrastructure', 'urban green', 'agriculture', 'nature', 'inland water', 'exterior water'], DialogType = "LabelText";
+			attribute<uint32> BrushColor : [rgb(255,255,255), rgb(255,60,0), rgb(170,170,170), rgb(255,211,127), rgb(100,100,100), rgb(177,214,0), rgb(233,245,190), rgb(100,175,0), rgb(150,220,240), rgb(150,220,240)], DialogType = "BrushColor";
+		}
+	}
+
+	container SourceData
+	{
+		unit<uint32> gemeente                                                  // the source data of Module 2A, read from the data folder of data_sources
+		:	StorageName     = "%ProjDir%/../data_sources/data/gemeente.csv"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True";
+
+		unit<uint32> NS_station
+		:	StorageName     = "%ProjDir%/../data_sources/data/NS_stations_2019_RD.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry;                                 // points; the file also holds stations abroad
+		}
+
+		unit<uint32> motorway
+		:	StorageName     = "%ProjDir%/../data_sources/data/OSM_Motorways_NL.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry (arc);
+		}
+
+		unit<uint32> Corop
+		:	StorageName     = "%ProjDir%/../data_sources/data/CBS_COROP_2012.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry (polygon);
+		}
+
+		unit<spoint> BBG
+		:	StorageName     = "%ProjDir%/../data_sources/data/bbg2015_100m_10k.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True"
+		,	DialogData      = "/Geography/rdc"
+		{
+			attribute<Classifications/landuse> GridData;                       // uint8 values, with the legend of Classifications/landuse
+		}
+	}
+
+	container Analysis: using = "Units;Geography;SourceData" // the code examples of the wiki page of Module 5, one container per section
+	{
+		container rasterising
+		{
+			attribute<Corop>   corop_grid             (BBG)   := poly2grid(Corop/geometry, BBG);
+			attribute<string>  corop_name_grid        (BBG)   := Corop/statnaam[corop_grid];
+			attribute<uint32>  n_cells_per_corop      (Corop) := sum(const(1[uint32], BBG), corop_grid);
+			attribute<float32> mean_landuse_per_corop (Corop) := mean(float32(BBG/GridData), corop_grid); // illustrative only: land-use codes are categorical
+		}
+
+		container grid_coordinates
+		{
+			attribute<int16>   col         (BBG) := pointcol(id(BBG));                          // column number, from 0 at the left
+			attribute<int16>   row         (BBG) := pointrow(id(BBG));                          // row number, from 0 at the top
+			attribute<float64> x_corner    (BBG) := get_x(id(BBG));                             // RD x of the top-left corner of each cell
+			attribute<float64> y_corner    (BBG) := get_y(id(BBG));                             // RD y of the top-left corner of each cell
+			attribute<rdc>     cell_centre (BBG) := id(BBG)[rdc] + point_xy(0.5f * cell_size, -0.5f * cell_size, rdc); // the centre point of each cell: the corner plus half a cell
+		}
+
+		container neighbourhood
+		{
+			unit<spoint> kernel_500m := range(spoint, point_xy(-5s, -5s), point_xy(6s, 6s)) // a circular kernel with a radius of 5 cells, 500 m
+			{
+				attribute<uint32>  dist2_val := dist2(point_xy(0s, 0s, kernel_500m), uint32);
+				attribute<float32> weight    := dist2_val <= 25 ? 1.0f : 0.0f;
+			}
+
+			attribute<bool>    is_residential        (BBG) := BBG/GridData == 1b;
+			attribute<float32> residential_potential (BBG) := potential(float32(is_residential), kernel_500m/weight);
+
+			unit<spoint> kernel_1km := range(spoint, point_xy(-10s, -10s), point_xy(11s, 11s)) // distance-decay weights within 1 km
+			{
+				attribute<uint32>  dist2_val := dist2(point_xy(0s, 0s, kernel_1km), uint32);
+				attribute<float32> weight    := dist2_val <= 100 ? 1.0f / float32(max_elem(dist2_val, 1)) : 0.0f;
+			}
+
+			attribute<float32> residential_potential_1km (BBG) := potential(float32(is_residential), kernel_1km/weight);
+
+			attribute<BBG>     station_cell   (NS_station) := NS_station/geometry[BBG];            // the grid cell of each station
+			attribute<uint8>   has_station_grid      (BBG) := uint8(pcount(station_cell) > 0);     // 1 where a station exists, 0 elsewhere
+
+			unit<spoint> kernel_2km := range(spoint, point_xy(-20s, -20s), point_xy(21s, 21s))
+			{
+				attribute<uint32>  dist2_val := dist2(point_xy(0s, 0s, kernel_2km), uint32);
+				attribute<float32> weight    := dist2_val <= 400 ? 1.0f : 0.0f;
+			}
+
+			attribute<float32> station_within_2km    (BBG) := proximity(float32(has_station_grid), kernel_2km/weight); // above 0 where a station lies within 2 km
+
+			attribute<uint8>   landuse_diversity     (BBG) := diversity(BBG/GridData, 5w, 1w);
+		}
+
+		container connected_regions
+		{
+			unit<uint32> land_use_patches := district(BBG/GridData);                  // with the subitem Districts: the patch of each grid cell
+			attribute<uint32> patch_size (land_use_patches) := sum(const(1[uint32], BBG), land_use_patches/Districts);
+
+			unit<uint32> patches_8connected := district_8(BBG/GridData);
+		}
+
+		container grid_to_vector
+		{
+			attribute<uint32>  n_cells         (Corop) := sum(const(1[uint32], BBG), rasterising/corop_grid);
+			attribute<uint32>  n_residential   (Corop) := sum(uint32(BBG/GridData == 1b), rasterising/corop_grid);
+			attribute<float32> pct_residential (Corop) := float32(n_residential) / float32(n_cells);
+		}
+	}
+
+	container Exercises: using = "Units;Geography;SourceData" // the answers to the exercises of Module 5
+	{
+		container exercise1 // rasterise: the COROP region of each grid cell
+		{
+			attribute<Corop>  corop_grid      (BBG) := poly2grid(Corop/geometry, BBG);
+			parameter<uint32> nr_cells_outside      := sum(uint32(IsNull(corop_grid)));
+		}
+
+		container exercise2 // aggregate: the share of residential cells per COROP region
+		{
+			attribute<uint32>  n_cells           (Corop) := pcount(exercise1/corop_grid);
+			attribute<uint32>  n_residential     (Corop) := sum(uint32(BBG/GridData == 1b), exercise1/corop_grid);
+			attribute<float32> share_residential (Corop) := float32(n_residential) / float32(n_cells);
+			parameter<Corop>   highest_share_rel         := rlookup(max(share_residential), share_residential);
+			parameter<string>  highest_share_name        := Corop/statnaam[highest_share_rel];
+		}
+
+		container exercise3 // neighbourhood potential: the number of residential cells within 500 m
+		{
+			unit<spoint> kernel_500m := range(spoint, point_xy(-5s, -5s), point_xy(6s, 6s))
+			{
+				attribute<uint32>  dist2_val := dist2(point_xy(0s, 0s, kernel_500m), uint32);
+				attribute<float32> weight    := dist2_val <= 25 ? 1.0f : 0.0f;
+			}
+
+			attribute<float32> residential_within_500m (BBG) := potential(float32(BBG/GridData == 1b), kernel_500m/weight);
+		}
+
+		container exercise4 // diversity: the number of land-use classes within 300 m
+		{
+			attribute<uint8>  diversity_300m (BBG) := diversity(BBG/GridData, 3w, 1w);
+			parameter<uint8>  max_diversity        := max(diversity_300m);
+			attribute<bool>   is_most_diverse (BBG) := diversity_300m == max_diversity;
+		}
+
+		container exercise5 // district: the connected patches of nature and their area
+		{
+			parameter<m2>     cell_area            := cell_size * cell_size;
+			attribute<uint8>  nature         (BBG) := BBG/GridData == 7b ? 1b : null_b;   // nature cells, null elsewhere, so that only the nature cells form patches
+
+			unit<uint32> nature_patches := district(nature)
+			{
+				attribute<km2> patch_area := (float32(pcount(Districts)) * cell_area)[km2];
+			}
+
+			parameter<km2>    largest_patch_area   := max(nature_patches/patch_area);
+			attribute<bool>   in_largest_patch (BBG) := nature_patches/Districts == rlookup(largest_patch_area, nature_patches/patch_area);
+		}
+	}
+}

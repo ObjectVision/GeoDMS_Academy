@@ -1,0 +1,78 @@
+container basic_analyses_grid_exercise
+{
+	container Units
+	{
+		unit<float32> m   := baseunit('m', float32); // metre, the metric of the RD New coordinates
+		unit<float32> m2  := m * m;
+		unit<float32> km2 := 1000000f * m2;
+	}
+
+	container Geography: using = "Units"
+	{
+		unit<fpoint> rdc_base  : SpatialReference = "EPSG:28992", DialogData = "wmts_layer";        // Rijksdriehoekstelsel (RD New), a 2D cartesian coordinate system for the Netherlands
+		unit<fpoint> rdc       := range(rdc_base, point_xy(0f, 300000f), point_xy(280000f, 625000f)); // the 2D range of the Netherlands in RD New
+
+		parameter<m> cell_size := 100[m];                                                          // the cell size of the land-use grid
+
+		#include <../wmts_layer.dms>
+	}
+
+	container Classifications
+	{
+		unit<uint8> landuse : nrofrows = 10 // the ten land-use classes of bbg2015_100m_10k.tif; 255 marks a cell without data, which is null for uint8
+		{
+			attribute<string> name       : ['OSA', 'residential', 'otherbuiltup', 'construction', 'infrastructure', 'urbangreen', 'agriculture', 'nature', 'water', 'exteriorwater'];
+			attribute<string> label      : ['outside study area (abroad)', 'residential', 'other built-up', 'construction site', 'infrastructure', 'urban green', 'agriculture', 'nature', 'inland water', 'exterior water'], DialogType = "LabelText";
+			attribute<uint32> BrushColor : [rgb(255,255,255), rgb(255,60,0), rgb(170,170,170), rgb(255,211,127), rgb(100,100,100), rgb(177,214,0), rgb(233,245,190), rgb(100,175,0), rgb(150,220,240), rgb(150,220,240)], DialogType = "BrushColor";
+		}
+	}
+
+	container SourceData
+	{
+		unit<uint32> gemeente                                                  // the source data of Module 2A, read from the data folder of data_sources
+		:	StorageName     = "%ProjDir%/../data_sources/data/gemeente.csv"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True";
+
+		unit<uint32> NS_station
+		:	StorageName     = "%ProjDir%/../data_sources/data/NS_stations_2019_RD.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry;                                 // points; the file also holds stations abroad
+		}
+
+		unit<uint32> motorway
+		:	StorageName     = "%ProjDir%/../data_sources/data/OSM_Motorways_NL.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry (arc);
+		}
+
+		unit<uint32> Corop
+		:	StorageName     = "%ProjDir%/../data_sources/data/CBS_COROP_2012.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry (polygon);
+		}
+
+		unit<spoint> BBG
+		:	StorageName     = "%ProjDir%/../data_sources/data/bbg2015_100m_10k.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True"
+		,	DialogData      = "/Geography/rdc"
+		{
+			attribute<Classifications/landuse> GridData;                       // uint8 values, with the legend of Classifications/landuse
+		}
+	}
+
+	container Analysis: using = "Units;Geography;SourceData"  // room to try the code examples of the wiki page
+	{
+	}
+
+	container Exercises: using = "Units;Geography;SourceData" // room for your answers to the exercises
+	{
+	}
+}

@@ -1,0 +1,195 @@
+container basic_analyses_vector_result
+{
+	container Units
+	{
+		unit<float64> m       := baseunit('m', float64);   // metre, the metric of the RD New coordinates; float64 like the dpoint coordinates
+		unit<float64> m2      := m * m;
+		unit<float64> km2     := 1000000.0 * m2;
+		unit<float64> degrees := baseunit('deg', float64);
+	}
+
+	container Geography
+	{
+		unit<dpoint> rdc_base : SpatialReference = "EPSG:28992", DialogData = "wmts_layer";                   // Rijksdriehoekstelsel (RD New), with float64 coordinates (dpoint): the geos_ functions work on dpoint
+		unit<dpoint> rdc      := range(rdc_base, point_xy(0.0, 300000.0), point_xy(280000.0, 625000.0)); // the 2D range of the Netherlands in RD New
+		unit<dpoint> latlong  : SpatialReference = "EPSG:4326";                                           // WGS84, x is the longitude and y the latitude, in degrees
+
+		#include <../wmts_layer.dms>
+	}
+
+	container SourceData
+	{
+		unit<uint32> gemeente                                                  // the source data of Module 2A, read from the data folder of data_sources
+		:	StorageName     = "%ProjDir%/../data_sources/data/gemeente.csv"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True";
+
+		unit<uint32> NS_station
+		:	StorageName     = "%ProjDir%/../data_sources/data/NS_stations_2019_RD.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry;                                 // points; the file also holds stations abroad
+		}
+
+		unit<uint32> motorway
+		:	StorageName     = "%ProjDir%/../data_sources/data/OSM_Motorways_NL.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry (arc);
+		}
+
+		unit<uint32> Corop
+		:	StorageName     = "%ProjDir%/../data_sources/data/CBS_COROP_2012.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry (polygon);
+		}
+
+		unit<spoint> BBG
+		:	StorageName     = "%ProjDir%/../data_sources/data/bbg2015_100m_10k.tif"
+		,	StorageType     = "gdal.grid"
+		,	StorageReadOnly = "True"
+		,	DialogData      = "/Geography/rdc"
+		{
+			attribute<uint8> GridData;
+		}
+
+		unit<uint32> province                                                  // the twelve provinces, the shapefile of Module 1
+		:	StorageName     = "%ProjDir%/../basics_single_domain/data/provincie.shp"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<Geography/rdc> geometry (polygon);
+			attribute<string>        naam;
+		}
+
+		unit<uint32> pc4_points                                                // the centre point of each four-digit postcode area, taken from basics_multiple_domains/data/pc4_xy_tm2020.shp
+		:	StorageName     = "%ProjDir%/data/pc4_points.csv"
+		,	StorageType     = "gdal.vect"
+		,	StorageReadOnly = "True"
+		{
+			attribute<string>        postcode;
+			attribute<float64>       x_rd;
+			attribute<float64>       y_rd;
+
+			attribute<Geography/rdc> geometry := point_xy(x_rd, y_rd, Geography/rdc); // exercise 3: a point geometry from the x and y columns
+		}
+	}
+
+	container Analysis: using = "Units;Geography;SourceData" // the code examples of the wiki page of Module 4, one container per section
+	{
+		container selections
+		{
+			unit<uint32> corop_NH := select_with_org_rel(Corop/statcode >= 'CR18' && Corop/statcode <= 'CR24') // the COROP regions of Noord-Holland, statcode CR18 to CR24
+			{
+				attribute<rdc>    geometry (poly) := org_rel -> geometry;
+				attribute<string> statnaam        := org_rel -> statnaam;
+			}
+
+			unit<uint32> stations_NL := select_with_attr_by_cond(NS_station, NS_station/Land == 'NL'); // the stations in the Netherlands, with all their attributes
+		}
+
+		container spatial_relations
+		{
+			attribute<Corop>  corop_rel    (NS_station) := point_in_polygon(NS_station/geometry, Corop/geometry);
+			attribute<string> corop_name   (NS_station) := Corop/statnaam[corop_rel];
+
+			unit<uint32> station_corop_pairs := point_in_all_polygons(NS_station/geometry, Corop/geometry)
+			{
+				attribute<NS_station> station_rel := first_rel;
+				attribute<Corop>      corop_rel   := second_rel;
+			}
+
+			parameter<rdc>    amsterdam_cs              := point_xy(121845.0, 488002.0, rdc); // Amsterdam Centraal
+			attribute<m>      dist_to_acs  (NS_station) := value(dist(NS_station/geometry, const(amsterdam_cs, NS_station)), m);
+		}
+
+		container geometry_properties
+		{
+			attribute<m2>  corop_area_m2     (Corop)    := area(Corop/geometry);
+			attribute<km2> corop_area_km2    (Corop)    := corop_area_m2[km2];
+			attribute<m>   road_length_m     (motorway) := arc_length(motorway/geometry);
+			attribute<rdc> corop_label_point (Corop)    := centroid_or_mid(Corop/geometry);
+			attribute<rdc> bbox_min          (Corop)    := lower_bound(Corop/geometry);
+			attribute<rdc> bbox_max          (Corop)    := upper_bound(Corop/geometry);
+		}
+
+		container geometry_operations
+		{
+			attribute<rdc>      station_buffer_500m  (poly, NS_station) := geos_buffer_point(NS_station/geometry, 500.0, 16b);
+			attribute<rdc>      corop_buffer_1km     (poly, Corop)      := geos_buffer_multi_polygon(Corop/geometry, 1000.0, 4b);
+			attribute<rdc>      motorway_buffer_100m (poly, motorway)   := geos_buffer_linestring(motorway/geometry, 100.0, 8b);
+
+			parameter<rdc>      nl_outline           (poly)             := geos_union_polygon(Corop/geometry);
+			attribute<province> province_rel         (Corop)            := point_in_polygon(centroid_or_mid(Corop/geometry), province/geometry); // the province in which the interior point of each COROP region lies
+			attribute<rdc>      province_geometry    (poly, province)   := geos_union_polygon(Corop/geometry, province_rel);
+
+			attribute<rdc>      corop_ring_1km       (poly, Corop)      := corop_buffer_1km - Corop/geometry; // the band of 1 km just outside each COROP region
+			parameter<rdc>      exclusion_zone       (poly)             := geos_buffer_point(spatial_relations/amsterdam_cs, 5000.0, 32b); // the area within 5 km of Amsterdam Centraal
+			attribute<rdc>      corop_clipped        (poly, Corop)      := Corop/geometry - exclusion_zone;
+
+			parameter<rdc>      study_area           (poly)             := geos_buffer_point(spatial_relations/amsterdam_cs, 25000.0, 32b); // the area within 25 km of Amsterdam Centraal
+			attribute<rdc>      corop_in_study_area  (poly, Corop)      := Corop/geometry * study_area;
+
+			unit<uint32> corop_x_province := geos_overlay_polygon(Corop/geometry, province/geometry)
+			{
+				attribute<Corop>    corop_rel    := first_rel;
+				attribute<province> province_rel := second_rel;
+			}
+
+			attribute<rdc>      corop_simple         (poly, Corop)      := geos_simplify_multi_polygon(Corop/geometry, 100.0);
+		}
+
+		container coordinate_conversions
+		{
+			attribute<latlong> station_wgs84 (selections/stations_NL) := rd2latlongwgs84(selections/stations_NL/geometry, latlong); // only for points in the Netherlands
+			attribute<rdc>     station_rd    (selections/stations_NL) := latlongwgs842rd(station_wgs84, rdc);
+			attribute<rdc>     station_rd_v2 (selections/stations_NL) := station_wgs84[rdc];                                     // the same conversion, by PROJ
+		}
+	}
+
+	container Exercises: using = "Units;Geography;SourceData" // the answers to the exercises of Module 4; the answer to exercise 3 is SourceData/pc4_points/geometry
+	{
+		container exercise1 // selection: the COROP regions with an area above 1000 km2
+		{
+			parameter<km2>    min_area                := 1000[km2];
+			attribute<m2>     area_m2         (Corop) := area(Corop/geometry);
+			attribute<km2>    area_km2        (Corop) := area_m2[km2];
+
+			unit<uint32> large_corop := select_with_org_rel(area_km2 > min_area)
+			{
+				attribute<rdc>    geometry (poly) := org_rel -> geometry;
+				attribute<string> statnaam        := org_rel -> statnaam;
+				attribute<km2>    area_km2        := exercise1/area_km2[org_rel];
+			}
+
+			parameter<uint32> nr_large_corop          := #large_corop;
+		}
+
+		container exercise2 // spatial relation: the COROP region of each station, and the number of stations per COROP region
+		{
+			attribute<Corop>  corop_rel   (NS_station) := point_in_polygon(NS_station/geometry, Corop/geometry);
+			attribute<uint32> nr_stations (Corop)      := sum(const(1[uint32], NS_station), corop_rel);
+			parameter<uint32> nr_stations_abroad       := sum(uint32(IsNull(corop_rel))); // stations outside all COROP regions
+		}
+
+		container exercise4 // buffer: the COROP region of the centre of a 5 km buffer around each station, compared to exercise 2
+		{
+			attribute<rdc>    buffer_5km    (poly, NS_station) := geos_buffer_point(NS_station/geometry, 5000.0, 16b);
+			attribute<rdc>    buffer_centre (NS_station)       := centroid_or_mid(buffer_5km);
+			attribute<Corop>  corop_rel     (NS_station)       := point_in_polygon(buffer_centre, Corop/geometry);
+			attribute<bool>   differs       (NS_station)       := MakeDefined(corop_rel != exercise2/corop_rel, IsDefined(corop_rel) != IsDefined(exercise2/corop_rel));
+			parameter<uint32> nr_differs                       := sum(uint32(differs));
+		}
+
+		container exercise5 // dissolve: one polygon per province, from the COROP regions
+		{
+			attribute<province> province_rel (Corop)          := point_in_polygon(centroid_or_mid(Corop/geometry), province/geometry);
+			attribute<rdc>      geometry     (poly, province) := geos_union_polygon(Corop/geometry, province_rel);
+			attribute<uint32>   nr_corop     (province)       := pcount(province_rel);
+		}
+	}
+}
