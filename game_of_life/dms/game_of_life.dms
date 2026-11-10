@@ -9,23 +9,23 @@ container game_of_life
 		unit<UInt32> steps := range(UInt32, 0, number_of_steps)
 		{
 			attribute<.> id        			:= id(.);
-			attribute<.> id_prev            := id(.)-1;
+			attribute<.> id_prev            := sub_or_null(id(.), 1);
 			attribute<String> name 			:= "step_" + String(id);
 			attribute<String> expr   		:= "simulation_step(simulation/" + "step_" + String(id_prev) + "/next_generation)";
 			attribute<String> expr_final	:= id == 0 ? "simulation_step(generation_domain/initial_state)" : expr; 
 		}
 	}
 	
-	unit<upoint> generation_domain := range(upoint, point(0u, 0u), point(simulation_parameters/square_grid_size, simulation_parameters/square_grid_size))
+	unit<upoint> generation_domain := range(upoint, point_xy(0u, 0u), point_xy(simulation_parameters/square_grid_size, simulation_parameters/square_grid_size))
 	{
 		attribute<float32> random_field := rnd_uniform(0, ., range(float32, 0f, 1f));
 		attribute<float32> initial_state   := Float32(random_field <= simulation_parameters/fraction_alive_cells);
 	}
 	
-	unit<upoint> kernel_domain := range(spoint, point(0u, 0u), point(3u, 3u))
+	unit<spoint> kernel_domain := range(spoint, point_xy(-1s, -1s), point_xy(2s, 2s))
     {
 	  attribute<.> id := id(.);
-	  attribute<Float32> kernel := id == point(1u,1u) ? 0f : 1f;
+	  attribute<Float32> kernel := id == point_xy(0s, 0s, .) ? 0f : 1f;
     }
 	
 	Template simulation_step
@@ -36,7 +36,7 @@ container game_of_life
 		attribute<bool> overpopulated (generation_domain)   := nr_alive_cells > 3u4;
 		attribute<bool> reproducing (generation_domain)     := nr_alive_cells == 3u4;
 		
-		attribute<Float32> next_generation (generation_domain)     := Float32(!(underpopulated || overpopulated) && reproducing);
+		attribute<Float32> next_generation (generation_domain)     := Float32(current_generation > 0f ? !(underpopulated || overpopulated) : reproducing);
 		
 	}
 	
@@ -48,5 +48,4 @@ container game_of_life
 	{
 	   attribute<float32> GridData := = 'simulation/step_' + String(max(simulation_parameters/steps/id)) + '/next_generation';
 	}
-}
 }

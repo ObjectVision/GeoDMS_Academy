@@ -65,7 +65,7 @@ container Evaluation : Descr = "This container contains several evaluation indic
 				  LandUse_Endogeneous/Name
 				, '(AllocatedLanduse/'+LandUse_Endogeneous/Name+' / Demand/'+LandUse_Endogeneous/Name+')'
 				, Input/AggRegio
-				, ratio
+				, float32
 			), Descr = "Degree to which initial demand is allocated";
 	}
 	
@@ -82,22 +82,22 @@ container Evaluation : Descr = "This container contains several evaluation indic
 		container Urbanisation : Descr = "Built-up surface per gridcel"
 		{
 			attribute<Ha>          Builtup_Surface            (NL_grid/domain) := ='add('+asItemList(Landuse_Urban/IsExogeneous ? 'Results/Exogenous/' +Landuse_Urban/Name : 'results/Endogenous/' +Landuse_Urban/Name)+')';
-			attribute<bool>        Builtup_Area               (NL_grid/domain) := Builtup_Surface > 15[Ha];
-			attribute<Ha>          Builtup_Surface_current    (NL_grid/domain) := ='add_list('+asItemList('orglanduse/' + Landuse_Urban/Name)+')';
-			attribute<bool>        Builtup_Area_current       (NL_grid/domain) := Builtup_Surface_current > 15[Ha];
+			attribute<bool>        Builtup_Area               (NL_grid/domain) := Builtup_Surface > 0.6[Ha];
+			attribute<Ha>          Builtup_Surface_current    (NL_grid/domain) := ='add('+asItemList('orglanduse/' + Landuse_Urban/Name)+')';
+			attribute<bool>        Builtup_Area_current       (NL_grid/domain) := Builtup_Surface_current > 0.6[Ha];
 			attribute<Ha>          Difference_Builtup_Surface (NL_grid/domain) := Urbanisation/Builtup_Surface - Urbanisation/Builtup_Surface_current;
 			attribute<LossOrGain>  Difference_Builtup_Area    (NL_grid/domain) := Urbanisation/Builtup_Area[LossOrGain]- Urbanisation/Builtup_Area_current[LossOrGain];
 
 			unit<uint32> DenseAreas := district(uint8(Builtup_Area))
 			{
 				attribute<DenseAreas> Districts (NL_grid/domain);
-				attribute<Ha>         Size      (DenseAreas) := float32(pcount(Districts)) * 25[Ha];
+				attribute<Ha>         Size      (DenseAreas) := float32(pcount(Districts)) * 1[Ha];
 				attribute<bool>       IsBuiltup (DenseAreas) := modus(Urbanisation/Builtup_Area, Districts);
 			}
 			
-			unit<uint32> BuiltupAreas:= subset(DenseAreas/IsBuiltup)
+			unit<uint32> BuiltupAreas:= select_with_org_rel(DenseAreas/IsBuiltup)
 			{
-				attribute<Ha> Size(BuiltupAreas) := DenseAreas/Size[nr_OrgEntity];
+				attribute<Ha> Size(BuiltupAreas) := DenseAreas/Size[org_rel];
 			}
 			
 			attribute<Ha> DenseAreasSizePerCel (NL_grid/domain) := DenseAreas/Size[DenseAreas/Districts] , cdf = "Classifications/Districts4K/Classes" , Label = "Size Dense Area";
@@ -105,13 +105,13 @@ container Evaluation : Descr = "This container contains several evaluation indic
 
 			unit<uint32> DenseAreas_current := district(uint8(Builtup_Area_current))
 			{
-				attribute<DenseAreas> Districts (NL_grid/domain);
-				attribute<Ha>         Size      (DenseAreas_current) := float32(pcount(Districts)) * 25[Ha];
+				attribute<DenseAreas_current> Districts (NL_grid/domain);
+				attribute<Ha>         Size      (DenseAreas_current) := float32(pcount(Districts)) * 1[Ha];
 				attribute<bool>       IsBuiltup (DenseAreas_current) := modus(Urbanisation/Builtup_Area_current, Districts);
 			}
-			unit<uint32> BuiltupAreas_current := subset(DenseAreas_current/IsBuiltup)
+			unit<uint32> BuiltupAreas_current := select_with_org_rel(DenseAreas_current/IsBuiltup)
 			{
-				attribute<Ha> Size (BuiltupAreas_current) := DenseAreas_current/Size[nr_OrgEntity];
+				attribute<Ha> Size (BuiltupAreas_current) := DenseAreas_current/Size[org_rel];
 			}
 			attribute<Ha> DenseAreas_current_SizePerCel   (NL_grid/domain) := DenseAreas_current/Size[DenseAreas_current/Districts], cdf = "Classifications/Districts4K/Classes", Label = "Size Dense Area";
 			attribute<Ha> BuiltupAreas_current_SizePerCel (NL_grid/domain) := Builtup_Area_current ? DenseAreas_current_SizePerCel : 0[Ha], cdf = "Classifications/Districts4K/Classes", Label = "Size Built-up Area";

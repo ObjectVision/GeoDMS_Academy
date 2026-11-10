@@ -53,29 +53,29 @@ container GeoDMS_Academy_Allocation
 			container             V            := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		}
 		
-		unit<uint8> LandUse_Endogeneous := subset(!LandUse/IsExogeneous)
+		unit<uint8> LandUse_Endogeneous := select_with_org_rel(!LandUse/IsExogeneous)
 		{
-			attribute<string>    label      := Landuse/label[nr_OrgEntity], DialogType = "LabelText";
-			attribute<string>    name       := LandUse/name[nr_OrgEntity];
-			attribute<uint32>    BrushColor := LandUse/BrushColor[nr_OrgEntity], DialogType = "BrushColor";
+			attribute<string>    label      := Landuse/label[org_rel], DialogType = "LabelText";
+			attribute<string>    name       := LandUse/name[org_rel];
+			attribute<uint32>    BrushColor := LandUse/BrushColor[org_rel], DialogType = "BrushColor";
 			container            V          := for_each_nedv(name, String(ID(.))+'[..]', void, .);
 		}
 		
-		unit<uint8> LandUse_Exogeneous := subset(LandUse/IsExogeneous)
+		unit<uint8> LandUse_Exogeneous := select_with_org_rel(LandUse/IsExogeneous)
 		{
-			attribute<uint8>     org_id     := id(LandUse)[nr_OrgEntity];
-			attribute<string>    label      := Landuse/label[nr_OrgEntity], DialogType = "LabelText";
-			attribute<string>    name       := LandUse/name[nr_OrgEntity];
-			attribute<uint32>    BrushColor := LandUse/BrushColor[nr_OrgEntity], DialogType = "BrushColor";
+			attribute<uint8>     org_id     := id(LandUse)[org_rel];
+			attribute<string>    label      := Landuse/label[org_rel], DialogType = "LabelText";
+			attribute<string>    name       := LandUse/name[org_rel];
+			attribute<uint32>    BrushColor := LandUse/BrushColor[org_rel], DialogType = "BrushColor";
 			container            V          := for_each_nedv(name, String(org_id)+'[..]', void, .);
 		}
 		
-		unit<UInt8> Landuse_Urban := SubSet(LandUse/IsUrban)
+		unit<UInt8> Landuse_Urban := select_with_org_rel(LandUse/IsUrban)
 		{
-			attribute<string>    label        := Landuse/label[nr_OrgEntity], DialogType = "LabelText";
-			attribute<string>    name         := LandUse/name[nr_OrgEntity];
-			attribute<uint32>    BrushColor   := LandUse/BrushColor[nr_OrgEntity], DialogType = "BrushColor";
-			attribute<Bool>      IsExogeneous := LandUse/IsExogeneous[nr_OrgEntity];
+			attribute<string>    label        := Landuse/label[org_rel], DialogType = "LabelText";
+			attribute<string>    name         := LandUse/name[org_rel];
+			attribute<uint32>    BrushColor   := LandUse/BrushColor[org_rel], DialogType = "BrushColor";
+			attribute<Bool>      IsExogeneous := LandUse/IsExogeneous[org_rel];
 		}
 		
 		unit<uint8> LossOrGain_Class: nrofrows = 3
@@ -151,11 +151,12 @@ container GeoDMS_Academy_Allocation
 				)';
 		
 			container LU_continuous := 
-				for_each_ndva(
+				for_each_ndvat(
 					classifications/Landuse/name
 					, NL_grid/domain
 					, Ha
 					, '%ProjDir%/Data/LU_continuous/share_lu_2017_'+classifications/Landuse/name+'.tif'
+					, 'tif'
 				);
 				
 			container LU_discrete := 

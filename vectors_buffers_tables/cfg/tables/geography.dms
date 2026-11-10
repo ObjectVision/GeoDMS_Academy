@@ -1,14 +1,14 @@
 container Geography: using = "units"
 {
-	unit<fpoint> rdc_base :	Format     = "EPSG:28992", 	DialogData = "wmts_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
+	unit<fpoint> rdc_base :	SpatialReference = "EPSG:28992", 	DialogData = "wmts_layer"; // wms achtergrondlaag voor kaarten met rd coordinaten
 	unit<fpoint> rdc     := range(rdc_base, point_xy(110000f,475000f), point_xy(135000f,500000f));
 	unit<ipoint> rdc_mm  := gridset(rdc, point_xy(0.001,0.001), point_xy(0.0, 0.0), ipoint);
 	
 	#include <wmts_layer.dms>
 
-	unit<uint32> sg_points := Subset(isDefined(NL_grid/domain/point_rd))
+	unit<uint32> sg_points := select_with_org_rel(isDefined(NL_grid/domain/point_rd))
 	{
-		attribute<geography/rdc>    geometry  := NL_grid/domain/point_rd[nr_OrgEntity];	
+		attribute<geography/rdc>    geometry  := NL_grid/domain/point_rd[org_rel];	
 		attribute<float32>          x         := PointCol(geometry);
 		attribute<float32>          y         := PointRow(geometry);
 		attribute<NL_grid/domain>   NL_grid_domain_rel  := geometry[NL_grid/domain];	

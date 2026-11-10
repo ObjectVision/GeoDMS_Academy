@@ -57,7 +57,7 @@ container SourceData : using = "Units;Geography"
 			parameter<uint32> PenColor := rgb(200,0,0), DialogType = "PenColor";
 		}
 
-		attribute<rdc> polygon (poly, .) := points2sequence(points/geometry, const(0[.], points), reverse(points/order))
+		attribute<rdc> polygon (poly, .) := points2polygon(points/geometry, const(0[.], points), reverse(points/order))
 		{
 			parameter<uint32> BrushColor := rgb(0,0,200), DialogType = "BrushColor";
 		}

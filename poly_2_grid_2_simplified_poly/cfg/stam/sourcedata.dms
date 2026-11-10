@@ -27,7 +27,7 @@ container SourceData: Using = "Units;Geography"
 				);
 			attribute<uint32> ordinal := #pointset - second_rel - 1;
 		}
-		attribute<point_rd> geometry (poly, shape) := points2sequence(pointset/point, pointset/first_rel, pointset/ordinal);
+		attribute<point_rd> geometry (poly, shape) := points2polygon(pointset/point, pointset/first_rel, pointset/ordinal);
 	}
 
 	container Square
@@ -47,7 +47,7 @@ container SourceData: Using = "Units;Geography"
 			attribute<uint32>   order    := id(.);
 		}
 
-		attribute<point_rd> geometry (poly, shape) := points2sequence(pointset/point, pointset/sequence, pointset/order);
+		attribute<point_rd> geometry (poly, shape) := points2polygon(pointset/point, pointset/sequence, pointset/order);
 	}
 
 	container Triangles
@@ -68,7 +68,7 @@ container SourceData: Using = "Units;Geography"
 				attribute<uint32>   order    := id(.);
 			}
 
-			attribute<point_rd> geometry (poly, shape) := points2sequence(pointset/point, pointset/sequence, pointset/order);
+			attribute<point_rd> geometry (poly, shape) := points2polygon(pointset/point, pointset/sequence, pointset/order);
 		}
 
 		container second
@@ -87,7 +87,7 @@ container SourceData: Using = "Units;Geography"
 				attribute<uint32>   order    := id(.);
 			}
 
-			attribute<point_rd> geometry (poly, shape) := points2sequence(pointset/point, pointset/sequence, pointset/order);
+			attribute<point_rd> geometry (poly, shape) := points2polygon(pointset/point, pointset/sequence, pointset/order);
 		}
 	}
 

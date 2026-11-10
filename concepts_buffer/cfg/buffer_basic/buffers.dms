@@ -20,7 +20,7 @@ container Buffers : Using = "Units;Geography"
 			attribute<float32> angle := float32(id(.)) * 2f * float32(pi()) / float32(64);
 			attribute<float32> x     := cos(angle);
 			attribute<float32> y     := sin(angle);
-			attribute<FPoint>  xy    := point(cos(angle), sin(angle))
+			attribute<FPoint>  xy    := point_xy(cos(angle), sin(angle))
 			{
 				parameter<int16> SymbolIndex := int16(169), DialogType = "SymbolIndex";
 			}
@@ -36,13 +36,13 @@ container Buffers : Using = "Units;Geography"
 			unit<uint32> points := combine(src, impl/circle)
 			{
 				attribute<fpoint> xy :=
-					point(
+					point_xy(
 						  src/x[first_rel] + float32(radius) * float32(impl/circle/x[second_rel])
 						, src/y[first_rel] + float32(radius) * float32(impl/circle/y[second_rel])
 						, geography/rdc
 					);
 			}
-			attribute<geography/rdc> geometry (src, polygon) := points2sequence(points/xy, points/first_rel, #impl/circle - points/second_rel - 1);
+			attribute<geography/rdc> geometry (src, polygon) := points2polygon(points/xy, points/first_rel, #impl/circle - points/second_rel - 1);
 		}
 
 		template make_rhombus
@@ -58,9 +58,9 @@ container Buffers : Using = "Units;Geography"
 				attribute<m>             y        := union_data(., src/y - radius, src/y         , src/y + radius, src/y         , src/y - radius);
 				attribute<src>           sequence := union_data(., id(src),id(src),id(src),id(src),id(src));
 				attribute<uint32>        ordinal  := union_data(., const(0,src),const(1,src),const(2,src),const(3,src),const(4,src));
-				attribute<geography/rdc> point    := point(x,y,geography/rdc);
+				attribute<geography/rdc> point    := point_xy(x,y,geography/rdc);
 			}
-			attribute<geography/rdc> geometry (src, polygon) := points2sequence(points/point, points/sequence, reverse(points/ordinal));
+			attribute<geography/rdc> geometry (src, polygon) := points2polygon(points/point, points/sequence, reverse(points/ordinal));
 		}
 	}
 
@@ -110,7 +110,7 @@ container Buffers : Using = "Units;Geography"
 
 		container grid
 		{
-			attribute<SourceData/arcs_poly> poly_rel       (Geography/AMS_grid/domain) := poly2grid(SourceData/arcs_poly/poly, Geography/AMS_grid/domain);
+			attribute<SourceData/arcs_poly> poly_rel       (Geography/AMS_grid/domain) := poly2grid(SourceData/arcs_poly/polygon, Geography/AMS_grid/domain);
 
 			attribute<float32>              potential_100m (Geography/AMS_grid/domain) := potential(float32(poly_rel + 1), Geography/Kernel/m100);
 			attribute<float32>              potential_500m (Geography/AMS_grid/domain) := potential(float32(poly_rel + 1), Geography/Kernel/m500);

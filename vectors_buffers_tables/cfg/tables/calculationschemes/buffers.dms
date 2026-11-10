@@ -41,7 +41,7 @@ container Buffers:	Using = "units;classifications"
 					, geography/rdc
 				);
 		}			
-		attribute<geography/rdc> buffer (entrance, polygon) := points2sequence(points/xy, points/first_rel, #circle - points/second_rel - 1);
-		parameter<geography/rdc> buffer_diss (polygon) := union_polygon(buffer[geography/rdc_mm])[geography/rdc];
+		attribute<geography/rdc> buffer (entrance, polygon) := points2polygon(points/xy, points/first_rel, #circle - points/second_rel - 1);
+		parameter<geography/rdc> buffer_diss (polygon) := bp_union_polygon(buffer[geography/rdc_mm])[geography/rdc];
 	}
 }

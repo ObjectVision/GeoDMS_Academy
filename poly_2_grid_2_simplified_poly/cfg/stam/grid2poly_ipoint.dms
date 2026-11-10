@@ -101,7 +101,7 @@ template grid2poly_ipoint
 		attribute<Zone>          left_Zone_rel := zone_rel[left];
 		attribute<Zone>          rightZone_rel := zone_rel[right];
 
-		attribute<JFSection>     JFSection_rel := JFSection/PartNr;
+		attribute<JFSection>     JFSection_rel := JFSection/part_rel;
 	}
 	unit<uint32> IntermediatePoint := select_with_org_rel(not(BoundaryPoint/isJunction))
 	{
@@ -184,9 +184,9 @@ template grid2poly_ipoint
 	// Junction Free Section := clusters van BoundarySegments
 	unit<uint32> JFSection := connected_parts(intermediatePoint/Ra, intermediatePoint/Rb)
 	{
-		attribute<uint32> nr_BoundarySegments := pcount(PartNr);
+		attribute<uint32> nr_BoundarySegments := pcount(part_rel);
 
-		attribute<uint8>  NrEnds       := sum_uint8(2 - BoundarySegment/NrIntermediatePoints, PartNr);
+		attribute<uint8>  NrEnds       := sum_uint8(2 - BoundarySegment/NrIntermediatePoints, part_rel);
 		attribute<bool>   isLineString := NrEnds == 2b; // it could also be a ring without any Junction
 
 		attribute<.> per_IntermediatePoint(IntermediatePoint) := MakeDefined(BoundarySegment/JFSection_rel[IntermediatePoint/Ra], BoundarySegment/JFSection_rel[IntermediatePoint/Rb]);
@@ -195,7 +195,7 @@ template grid2poly_ipoint
 	unit<uint32> JFRing  := select_with_org_rel(not(JFSection/isLineString))
 	{
 		attribute<JFSection>       JFSection_rel                     := org_rel;
-		attribute<BoundarySegment> JFSection_firstBS_rel (JFSection) :=  min_index(ID(BoundarySegment), JFSection/PartNr);
+		attribute<BoundarySegment> JFSection_firstBS_rel (JFSection) :=  min_index(ID(BoundarySegment), JFSection/part_rel);
 		attribute<BoundarySegment> firstBoundarySegment_rel          := lookup(JFSection_rel, JFSection_firstBS_rel);
 		attribute<BoundaryPoint>   firstBoundaryPoint_rel            := firstBoundarySegment_rel->bp_F1;
 
@@ -311,8 +311,8 @@ template grid2poly_ipoint
 	}
 	unit<uint32> ZoneRing := connected_parts(ID(JunctionLink), JunctionLink/next_rel)
 	{
-		attribute<.>            per_JunctionLink (JunctionLink) := PartNr;
-		attribute<JunctionLink> index            (JunctionLink) := index(PartNr);
+		attribute<.>            per_JunctionLink (JunctionLink) := part_rel;
+		attribute<JunctionLink> index            (JunctionLink) := index(part_rel);
 		attribute<JunctionLink> order            (JunctionLink) := invert(index);
 
 		attribute<Zone> FirstZone_rel                             := first(JunctionLink/rightZone_rel, per_JunctionLink);
@@ -386,7 +386,7 @@ template grid2poly_ipoint
 	{
 		// Polygonen van dezelfde regio samenvoegen tot multi-polygons, in een afzonderlijke template
 		// TODO: met afzonderlijke punten doen o.b.v. de te checked aanname dat ze niet overlappen.
-		attribute<ipoint> igeometry(poly) := partitioned_union_polygon(ipolygon(RingResults/geometry), RingResults/Zone_rel);
+		attribute<ipoint> igeometry(poly) := bp_union_polygon(ipolygon(RingResults/geometry), RingResults/Zone_rel);
 		attribute<geography/point_rd> geometry(poly) := fpolygon(igeometry);
 
 		// check dat result geen overlappende polygonen bevat

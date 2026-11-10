@@ -2,7 +2,7 @@ container Results : Using = "Units;SourceData;Geography;Classifications"
 {
 	container Discrete
 	{
-		attribute <LandUse> Result_discrete (NL_grid/domain) := Allocation/LandUse_rel[invert(Input/Compacted/ADomain/nr_OrgEntity)];
+		attribute <LandUse> Result_discrete (NL_grid/domain) := Allocation/LandUse_rel[invert(Input/Compacted/ADomain/org_rel)];
 	
 		container Input
 		{
@@ -12,16 +12,16 @@ container Results : Using = "Units;SourceData;Geography;Classifications"
 			//Compacted means, the set of grid cells that should be considered. In this case, this means that the exterior and exterior water are excluded.
 			container Compacted
 			{
-				unit<uint32> ADomain := subset(IsDefined(AggRegio/per_grid))
+				unit<uint32> ADomain := select_with_org_rel(IsDefined(AggRegio/per_grid))
 				, DialogType = "Map"
 				, DialogData = "BaseGrid";
-				attribute<ADomain> BaseGrid (NL_grid/domain) := invert(ADomain/nr_OrgEntity);
+				attribute<ADomain> BaseGrid (NL_grid/domain) := invert(ADomain/org_rel);
 
 				//Suitability per landuse type
 				container Suitability :=
 					for_each_nedv(
 						LandUse/name
-						, 'convert(potential(float32(SourceData/Landuse/Predominant == LandUse/V/'+LandUse/name+'), /Geography/Kernels/kernel_100m/relddWeight) * 100f, int32)[ADomain/nr_OrgEntity]'
+						, 'convert(potential(float32(SourceData/Landuse/Predominant == LandUse/V/'+LandUse/name+'), /Geography/Kernels/kernel_100m/relddWeight) * 100f, int32)[ADomain/org_rel]'
 						, ADomain
 						, int32
 					);
@@ -36,7 +36,7 @@ container Results : Using = "Units;SourceData;Geography;Classifications"
 				
 				//Atomic regions refer to the smallest regions present in the analysis. For example when you use COROP regions and some smaller region set that doesn't align with an aggregation of the latter. 
 				//However, in this case we only use one region set: COROP. And this attribute give a grid representation of the aggregation regions
-				attribute<AggRegio> AtomicRegionMap (ADomain) := AggRegio/per_grid[ADomain/nr_orgEntity]
+				attribute<AggRegio> AtomicRegionMap (ADomain) := AggRegio/per_grid[ADomain/org_rel]
 				{
 					attribute<AggRegio> id (AggRegio) := id(AggRegio);
 				}
@@ -88,7 +88,7 @@ container Results : Using = "Units;SourceData;Geography;Classifications"
 			   attribute<string> name   : ['id'];
 			}
 			
-			//This threshold is not used.
+			//Minimum suitability a land-use type needs on a land unit to be allocated there. All suitabilities here are 0 or more, so 0 excludes nothing.
 			parameter<int32> threshold := int32(0);
 			
 			//This empty container is not used.
@@ -207,19 +207,19 @@ container Results : Using = "Units;SourceData;Geography;Classifications"
 				{
 					attribute<bool> HasFreeLand (NL_grid/domain):= Land/TotalExogenousLand < 1[Ha];
 
-					unit <uint32> ADomain := Subset(HasFreeLand)
+					unit <uint32> ADomain := select_with_org_rel(HasFreeLand)
 					,	DialogType = "Map"
 					,	DialogData = "BaseGrid";
 
 					container SuitabilityMaps :=
 						for_each_nedv(
 							  classifications/LandUse_Endogeneous/label
-							, '(Suitabilities/'+classifications/LandUse_Endogeneous/label+ '[ADomain/nr_orgEntity])[Eur_m2]'
+							, '(Suitabilities/'+classifications/LandUse_Endogeneous/label+ '[ADomain/org_rel])[Eur_m2]'
 							, ADomain
 							, EUR_M2
 						);
 						
-					attribute<ADomain> BaseGrid (NL_grid/domain) := invert(ADomain/nr_OrgEntity);
+					attribute<ADomain> BaseGrid (NL_grid/domain) := invert(ADomain/org_rel);
 
 					container Demands :=
 						for_each_nedv(
@@ -229,7 +229,7 @@ container Results : Using = "Units;SourceData;Geography;Classifications"
 							, Units/DemandUnit
 						), Descr = "exp(betaFactor * Scj): beta rescaled exponent of suitability maps";
 
-					attribute<input/AggRegio> RegioGrids (ADomain) := input/AggRegio/per_grid[ADomain/nr_orgEntity];
+					attribute<input/AggRegio> RegioGrids (ADomain) := input/AggRegio/per_grid[ADomain/org_rel];
 				}
 
 				// create iterator
@@ -293,7 +293,7 @@ container Results : Using = "Units;SourceData;Geography;Classifications"
 					unit<uint16>          ThisIterRange                      := range(IterRange, 0w , uint16(nrIter));
 					attribute<String>     IterNames (ThisIterRange)          := 'iter'+string(id(ThisIterRange));
 					attribute<claimHa>    TotalDeviations (ThisIterRange)    := ='add('+asItemList('Float32(id(ThisIterRange) == value('+string(id(ThisIterRange))+',ThisIterRange))*casedata/iterator/'+IterNames+'/TotalDeviation')+')';
-					attribute<Potentiaal> LogTotalDeviations (ThisIterRange) := log(TotalDeviations);
+					attribute<Potentiaal> LogTotalDeviations (ThisIterRange) := log(TotalDeviations / 1[claimHa]);
 				}
 
 				#include <evaluation.dms>
@@ -369,7 +369,7 @@ container Results : Using = "Units;SourceData;Geography;Classifications"
 
 			attribute<DemandUnit> total_demand (ADomain) := ='add('+asItemList('adjusted_demands/'+LandUse_Endogeneous/Name)+')', Descr = "Tc = sum(j, Tcj): total demand on input"; // for unused land category, add "+'value(1.0, DemandUnit)'"
 
-			attribute<BcUnit>     demand_factor (ADomain) := CaseData/Land/FreeLand[ADomain/nr_orgEntity] / total_demand, Descr = "Bc = Lc / Tc: see formula 6a";
+			attribute<BcUnit>     demand_factor (ADomain) := CaseData/Land/FreeLand[ADomain/org_rel] / total_demand, Descr = "Bc = Lc / Tc: see formula 6a";
 
 			container allocated_land := 
 				for_each_ne(

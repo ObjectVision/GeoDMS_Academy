@@ -15,7 +15,7 @@ container GeoDMS_Academy_Polygon_Processing
 			attribute<float64> angle := float64(id(.)) * 2d * float64(pi()) / 64d;
 			attribute<float64> x     := cos(angle);
 			attribute<float64> y     := sin(angle);
-			attribute<float64> xy    := point_xy(cos(angle), sin(angle));
+			attribute<dpoint>  xy    := point_xy(cos(angle), sin(angle));
 		}
 
 		unit<uint32> shape: nrofrows = 1
@@ -35,7 +35,7 @@ container GeoDMS_Academy_Polygon_Processing
 				);
 			attribute<uint32> ordinal := #pointset - second_rel - 1;
 		}
-		attribute<rdc_meter> geometry (poly, shape) := points2sequence(pointset/point, pointset/first_rel, pointset/ordinal);
+		attribute<rdc_meter> geometry (poly, shape) := points2polygon(pointset/point, pointset/first_rel, pointset/ordinal);
 	}
 
 	container Square: Using = "Units;Geography"
@@ -55,7 +55,7 @@ container GeoDMS_Academy_Polygon_Processing
 			attribute<uint32>    order    := id(.);
 		}
 
-		attribute<rdc_meter> geometry (poly, shape) := points2sequence(pointset/point, pointset/sequence, pointset/order);
+		attribute<rdc_meter> geometry (poly, shape) := points2polygon(pointset/point, pointset/sequence, pointset/order);
 
 		container sub
 		{
@@ -98,7 +98,7 @@ container GeoDMS_Academy_Polygon_Processing
 					attribute<uint32>    order    := id(.);
 				}
 
-				attribute<rdc_meter> geometry (poly, shape) := points2sequence(pointset/point, pointset/sequence, pointset/order);
+				attribute<rdc_meter> geometry (poly, shape) := points2polygon(pointset/point, pointset/sequence, pointset/order);
 			}
 		}
 	}
@@ -119,7 +119,7 @@ container GeoDMS_Academy_Polygon_Processing
 			attribute<uint32>    order    := id(.);
 		}
 
-		attribute<rdc_meter> geometry (poly, shape) := points2sequence(pointset/point, pointset/sequence, pointset/order);
+		attribute<rdc_meter> geometry (poly, shape) := points2polygon(pointset/point, pointset/sequence, pointset/order);
 	}
 
 	unit<uint32> Shape : nrofrows = 3
@@ -136,34 +136,34 @@ container GeoDMS_Academy_Polygon_Processing
 
 		container inflated
 		{
-			attribute<Geography/rdc_meter> i100m_kernel_4 (shape, poly) := polygon_I4d(ipolygon(geometry), 100d)[Geography/rdc_meter]
+			attribute<Geography/rdc_meter> i100m_kernel_4 (shape, poly) := bp_minkowski_sum(bp_polygon(ipolygon(geometry)), 100d, '4D')[Geography/rdc_meter]
 			{
 				parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 			}
 
-			attribute<Geography/rdc_meter> i100m_kernel_8 (shape, poly) := polygon_I8d(ipolygon(geometry), 100d)[Geography/rdc_meter]
+			attribute<Geography/rdc_meter> i100m_kernel_8 (shape, poly) := bp_minkowski_sum(bp_polygon(ipolygon(geometry)), 100d, '8D')[Geography/rdc_meter]
 			{
 				parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 			}
 
-			attribute<Geography/rdc_meter> i100m_kernel_16 (shape, poly) := polygon_I16d(ipolygon(geometry), 100d)[Geography/rdc_meter]
+			attribute<Geography/rdc_meter> i100m_kernel_16 (shape, poly) := bp_minkowski_sum(bp_polygon(ipolygon(geometry)), 100d, '16D')[Geography/rdc_meter]
 			{
 				parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 			}
 		}
 		container deflated
 		{
-			attribute<Geography/rdc_meter> d100m_kernel_4 (shape, poly) := polygon_D4d(ipolygon(geometry), 100d)[Geography/rdc_meter]
+			attribute<Geography/rdc_meter> d100m_kernel_4 (shape, poly) := bp_minkowski_difference(bp_polygon(ipolygon(geometry)), 100d, '4D')[Geography/rdc_meter]
 			{
 				parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 			}
 
-			attribute<Geography/rdc_meter> d100m_kernel_8 (shape, poly) := polygon_D8d(ipolygon(geometry), 100d)[Geography/rdc_meter]
+			attribute<Geography/rdc_meter> d100m_kernel_8 (shape, poly) := bp_minkowski_difference(bp_polygon(ipolygon(geometry)), 100d, '8D')[Geography/rdc_meter]
 			{
 				parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 			}
 
-			attribute<Geography/rdc_meter> d100m_kernel_16 (shape, poly) := polygon_D16d(ipolygon(geometry), 100d)[Geography/rdc_meter]
+			attribute<Geography/rdc_meter> d100m_kernel_16 (shape, poly) := bp_minkowski_difference(bp_polygon(ipolygon(geometry)), 100d, '16D')[Geography/rdc_meter]
 			{
 				parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 			}
@@ -176,13 +176,13 @@ container GeoDMS_Academy_Polygon_Processing
 
 	container Union
 	{
-		parameter<Geography/rdc_meter> circle_square_triangle_union       (poly) := union_polygon(ipolygon(shape/geometry))[Geography/rdc_meter];
+		parameter<Geography/rdc_meter> circle_square_triangle_union       (poly) := bp_union_polygon(ipolygon(shape/geometry))[Geography/rdc_meter];
 		parameter<Geography/rdc_meter> circle_square_triangle_plus        (poly) := (ipolygon(circle/geometry[0]) + ipolygon(square/geometry[0]) + ipolygon(triangle/geometry[0]))[Geography/rdc_meter];
 
-		parameter<Geography/rdc_meter> dissolve_subsquares_to_one_square  (poly) :=  union_polygon(ipolygon(square/sub/all/Geometry))[Geography/rdc_meter];
+		parameter<Geography/rdc_meter> dissolve_subsquares_to_one_square  (poly) :=  bp_union_polygon(ipolygon(square/sub/all/Geometry))[Geography/rdc_meter];
 		parameter<Geography/rdc_meter> subsquares_to_one_square_plus      (poly) := (ipolygon(square/sub/lefttop/Geometry[0]) + ipolygon(square/sub/righttop/Geometry[0]) + ipolygon(square/sub/rightbottom/Geometry[0])+ ipolygon(square/sub/leftbottom/Geometry[0]))[Geography/rdc_meter];
 
-		attribute<Geography/rdc_meter> dissolve_subsquares_to_north_south (poly, square/sub/NorthSouth) := partitioned_union_polygon(ipolygon(square/sub/all/Geometry), square/sub/all/NorthSouth_rel)[Geography/rdc_meter];
+		attribute<Geography/rdc_meter> dissolve_subsquares_to_north_south (poly, square/sub/NorthSouth) := bp_union_polygon(ipolygon(square/sub/all/Geometry), square/sub/all/NorthSouth_rel)[Geography/rdc_meter];
 	}
 
 	container Overlap
@@ -241,13 +241,13 @@ container GeoDMS_Academy_Polygon_Processing
 
 			attribute<fpoint> point_reproject := point_xy(settings/precisie_factor * R, settings/precisie_factor * C, fpoint); // factor 100 ivm ipolygon vertalen en afrondingen
 		}
-		attribute<Geography/rdc_meter> geometry_org (shape, poly) := points2sequence(pointset/point, pointset/sequencenr, pointset/ordinal);
+		attribute<Geography/rdc_meter> geometry_org (shape, poly) := points2polygon(pointset/point, pointset/sequence_rel, pointset/ordinal);
 
-		attribute<fpoint> geometry (shape, poly) := points2sequence(pointset/point_reproject, pointset/sequencenr, pointset/ordinal)
+		attribute<fpoint> geometry (shape, poly) := points2polygon(pointset/point_reproject, pointset/sequence_rel, pointset/ordinal)
 		{
 			parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 		}
-		attribute<fpoint> geometry_inflated_100m (shape, poly) := polygon_I16d(ipolygon(geometry), 100d)[fpoint]
+		attribute<fpoint> geometry_inflated_100m (shape, poly) := bp_minkowski_sum(bp_polygon(ipolygon(geometry)), 100d, '16D')[fpoint]
 		{
 			parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 		}
@@ -265,7 +265,7 @@ container GeoDMS_Academy_Polygon_Processing
 				attribute<geography/rdc_meter> point_rdc := point_xy(X, Y, geography/rdc_meter);
 			}
 
-			attribute<geography/rdc_meter> stretched_i100m_kernel_16 (shape, poly) := points2sequence(pointset/point_rdc, pointset/sequencenr, pointset/ordinal)
+			attribute<geography/rdc_meter> stretched_i100m_kernel_16 (shape, poly) := points2polygon(pointset/point_rdc, pointset/sequence_rel, pointset/ordinal)
 			{
 				parameter<int16> PenStyle := 5s, DialogType = "PenStyle";
 			}

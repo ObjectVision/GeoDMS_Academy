@@ -29,7 +29,7 @@ container Classifications:  using = "Units"
 	{
 		attribute<uint8>  ID               := ID(.);
 		attribute<uint32> values           : [500, 1000, 1500, 2000, 2500, 3000];
-		attribute<uint32> values_prev      := MakeDefined(values[id-1b],0);
+		attribute<uint32> values_prev      := MakeDefined(values[sub_or_null(id, 1b)],0);
 		attribute<string> name_rep         := replace(string(values), '00', '00m', '00m0', '000m');
 		attribute<string> name_rep_prev    := replace(string(values_prev), '00', '00m', '00m0', '000m');
 		attribute<string> name             := 'buf_' + string(values_prev) + '_' + name_rep;

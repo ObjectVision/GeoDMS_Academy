@@ -7,9 +7,9 @@ container CalculationSchemes: using = "units;geography"
 		//
 		parameter<string> station_varname;
 		//
-		unit<uint32> subset  := Subset(Stations/NZL_stations/name == station_varname)
+		unit<uint32> subset  := select_with_org_rel(Stations/NZL_stations/name == station_varname)
 		{
-			attribute<geography/rdc>    geometry                    := Stations/NZL_stations/geometry[nr_OrgEntity];
+			attribute<geography/rdc>    geometry                    := Stations/NZL_stations/geometry[org_rel];
 			attribute<float32>          x                           := PointCol(geometry);
 			attribute<float32>          y                           := PointRow(geometry);
 			
