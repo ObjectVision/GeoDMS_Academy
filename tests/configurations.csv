@@ -1,0 +1,38 @@
+config,mode,expected_errors,needs,note
+basics_my_first_geodms_project/cfg/basics_my_first_geodms_project.dms,calc,0,,Module 0
+basics_naming_items/cfg/exercise.dms,calc,16,,Module 1a: the exercise has 16 errors on purpose; the student solves them
+basics_naming_items/cfg/result.dms,calc,0,,Module 1a
+basics_single_domain/cfg/exercise.dms,calc,0,,Module 1
+basics_single_domain/cfg/result.dms,calc,0,,Module 1
+basics_understanding_units/cfg/exercise.dms,calc,0,,Module 1b
+basics_understanding_units/cfg/result.dms,calc,0,,Module 1b
+basics_multiple_domains/cfg/exercise.dms,calc,0,,Module 1c
+basics_multiple_domains/cfg/result.dms,calc,0,,Module 1c
+basics_classify_and_visualise/cfg/exercise.dms,calc,0,,Module 1d
+basics_classify_and_visualise/cfg/result.dms,calc,0,,Module 1d
+data_sources/cfg/exercise.dms,calc,0,,Module 2
+data_sources/cfg/result.dms,calc,0,,Module 2: Model and FromPython read files that Preprocessing and python/gemeente_share.py write first; they fail until the exercise has been done once
+meta_scripting/cfg/main.dms,calc,0,,Module 3
+meta_scripting/cfg/result.dms,calc,0,,Module 3
+basic_analyses_vector/cfg/exercise.dms,calc,0,,Module 4
+basic_analyses_vector/cfg/result.dms,calc,0,,Module 4
+basic_analyses_grid/cfg/exercise.dms,calc,0,,Module 5
+basic_analyses_grid/cfg/result.dms,calc,0,,Module 5
+networks_car/cfg/exercise.dms,calc,0,,Module 6a
+networks_car/cfg/result.dms,calc,0,,Module 6a
+networks_publictransport/cfg/exercise.dms,meta,0,GeoDMS_Academy/networks_publictransport,Module 6b: meta only; one departure time takes about 20 minutes
+networks_publictransport/cfg/result.dms,meta,0,GeoDMS_Academy/networks_publictransport,Module 6b: meta only
+allocation/cfg/allocatie.dms,meta,0,,Extra exercise for Module 7: meta only
+concepts_aggregation/cfg/aggregation.dms,calc,0,,Extra exercise
+concepts_buffer/cfg/buffer_basic.dms,calc,0,,Extra exercise
+concepts_relationalmodel/cfg/relationalmodel.dms,calc,0,,Extra exercise
+concepts_vector2grid/cfg/vector_2_grid.dms,calc,0,,Extra exercise
+game_of_life/dms/game_of_life.dms,meta,0,,Extra exercise: meta only
+grids/cfg/grids.dms,calc,0,,Extra exercise
+poly_2_grid_2_simplified_poly/cfg/stam.dms,calc,0,,Extra exercise
+vectors_buffers_tables/cfg/tables.dms,calc,0,,Extra exercise
+vectors_points/cfg/points.dms,calc,0,,Extra exercise
+vectors_polygons/cfg/vector_poly.dms,calc,0,,Extra exercise
+../LandUseModelling/lus_demo/cfg/demo.dms,meta,0,,Modules 7 and 9: repository ObjectVision/LandUseModelling next to this one; meta only
+../RS_Deltares_Cursus/cfg/exercise.dms,calc,0,,Module 8: repository ObjectVision/RS_Deltares_Cursus next to this one
+../RS_Deltares_Cursus/cfg/results.dms,calc,0,,Module 8
