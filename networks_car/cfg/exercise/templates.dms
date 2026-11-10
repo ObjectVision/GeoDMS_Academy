@@ -15,8 +15,8 @@ container Templates : using = "units;Classifications;geography"
 		
 		container MakeConnectedRoads
 		{
-			attribute<rdc>  first_point (roadDomain) := first_node(roads);
-			attribute<rdc>  last_point  (roadDomain) := last_node(roads);
+			attribute<rdc>  first_point (roadDomain) := first_point(roads);
+			attribute<rdc>  last_point  (roadDomain) := last_point(roads);
 			
 			unit<uint32> Pointset := union_unit(roadDomain, roadDomain)
 			{
@@ -31,23 +31,23 @@ container Templates : using = "units;Classifications;geography"
 
 			unit<uint32> Networks := connected_parts(F1, F2)
 			{
-				attribute<uint32>   NrOfNodes    := sum(const(1, NodeSet), PartNr);
+				attribute<uint32>   NrOfNodes    := sum(const(1, NodeSet), part_rel);
 				parameter<uint32>   MaxNrOfNodes := max(NrOfNodes);
 				parameter<.>        Main         := rlookup(MaxNrOfNodes, NrOfNodes); // we assume that the network with the most nodes is the main network.
 			}
 			
-			unit<uint32> NodesNotConnected := Subset(networks/partnr <> networks/main)
+			unit<uint32> NodesNotConnected := select_with_org_rel(networks/part_rel <> networks/main)
 			{
-				attribute<rdc> Point := NodeSet/Values[Nr_OrgEntity];
+				attribute<rdc> Point := NodeSet/Values[org_rel];
 			}
 			
 			attribute<bool> IsConnected (roadDomain) := isNull(rlookup(Pointset/point, NodesNotConnected/point))[invert(Pointset/SequenceNr)];
 			
-			unit<uint32> Result := Subset(IsConnected)
+			unit<uint32> Result := select_with_org_rel(IsConnected)
 			{
-				attribute<rdc>           line (arc)          := roads[nr_OrgEntity];
-				attribute<OSM/roadtype>  roadtype            := roadDomain/wegtype[nr_OrgEntity];
-				attribute<km_hr>         max_speed           := roadDomain/max_speed[nr_OrgEntity];
+				attribute<rdc>           line (arc)          := roads[org_rel];
+				attribute<OSM/roadtype>  roadtype            := roadDomain/roadtype[org_rel];
+				attribute<km_hr>         max_speed           := roadDomain/max_speed[org_rel];
 			}
 		}
 		
@@ -61,20 +61,18 @@ container Templates : using = "units;Classifications;geography"
 			unit<uint32> UniqueLocation := unique(Locations/values);
 
 			unit<uint32> RoadsWithLocations := connect(MakeConnectedRoads/result/line, OrgToDest/UniqueLocation/values)
-			,	DialogData = "uniondata"
-			,	DialogType = "Map"
 			{
-				attribute<OSM/roadtype>  roadtype         := MakeDefined(MakeConnectedRoads/result/roadtype[nr_OrgEntity], value(69,OSM/roadtype));
-				attribute<km_hr>         max_speed        := IsDefined(MakeConnectedRoads/result/max_speed[nr_OrgEntity]) ? MakeConnectedRoads/result/max_speed[nr_OrgEntity] : 25[km_hr];
+				attribute<OSM/roadtype>  roadtype         := MakeDefined(MakeConnectedRoads/result/roadtype[arc_rel], value(69,OSM/roadtype));
+				attribute<km_hr>         max_speed        := IsDefined(MakeConnectedRoads/result/max_speed[arc_rel]) ? MakeConnectedRoads/result/max_speed[arc_rel] : 25[km_hr];
 			}
 
-			unit <uint32> LinkSet := arc2segm(RoadsWithLocations/UnionData)
+			unit <uint32> LinkSet := arc2segm(RoadsWithLocations/geometry)
 			,	DialogData = "segments"
 			,	DialogType = "Map"
 			{
 				attribute<rdc>           segments (arc)               := points2sequence(PointSet/Point, PointSet/SequenceNr, PointSet/Ordinal);
-				attribute<km_hr>         max_speed                    := RoadsWithLocations/max_speed[SequenceNr];
-				attribute<OSM/roadtype>  roadtype                     := RoadsWithLocations/roadtype[SequenceNr];
+				attribute<km_hr>         max_speed                    := RoadsWithLocations/max_speed[sequence_rel];
+				attribute<OSM/roadtype>  roadtype                     := RoadsWithLocations/roadtype[sequence_rel];
 				attribute<s>             impedance_link               := arc_length(segments, m) / value(max_speed, m_s);
 				
 				unit<uint32> PointSet := Union_Unit(LinkSet, LinkSet)
@@ -85,7 +83,7 @@ container Templates : using = "units;Classifications;geography"
 				}
 			}
 			
-			unit<uint32> NodeSet  := unique(LinkSet/PointSet/Point);
+			unit<uint32> NodeSet  := unique(LinkSet/PointSet/Point), DialogData = "values", DialogType = "map";
 			
 			attribute<NodeSet> F1 (LinkSet)              := rlookup(LinkSet/Point,     NodeSet/Values);
 			attribute<NodeSet> F2 (LinkSet)              := rlookup(LinkSet/nextpoint, NodeSet/Values);

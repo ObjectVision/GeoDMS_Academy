@@ -81,7 +81,7 @@ container Analysis : Using = "Units;SourceData;Geography"
 	
 	container Dijkstra_nearest
 	{
-		attribute<float32> TraveltimeToNearestDest (NetworkSpec/OrgToDest/NodeSet) := 
+		attribute<s>       TraveltimeToNearestDest (NetworkSpec/OrgToDest/NodeSet) := 
 			impedance_table('bidirectional(link_flag);startPoint(Node_rel)'
 				, NetworkSpec/OrgToDest/impedance
 				, NetworkSpec/OrgToDest/F1
@@ -91,7 +91,7 @@ container Analysis : Using = "Units;SourceData;Geography"
 				, NetworkSpec/OrgToDest/nr_orgNode
 			), KeepData = "true";
 			
-		attribute<float32> TraveltimeToNearestDest_perDest (dest)                  := TraveltimeToNearestDest[NetworkSpec/OrgToDest/nr_destNode];
+		attribute<s>       TraveltimeToNearestDest_perDest (dest)                  := TraveltimeToNearestDest[NetworkSpec/OrgToDest/nr_destNode];
 
 		container Interpolate
 		{

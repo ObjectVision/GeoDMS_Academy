@@ -98,7 +98,7 @@ container GeoDMS_Academy_Network_Car
 		{
 			attribute<rdc>     geometry;
 			attribute<string>  label;
-			attribute<string>  name := replace(label, '-', '_', '/', '');
+			attribute<string>  name := label;
 		}
 		
 		unit<uint32> Car_network

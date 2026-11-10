@@ -31,12 +31,12 @@ container Templates : using = "units;Classifications;geography"
 
 			unit<uint32> Networks := connected_parts(F1, F2)
 			{
-				attribute<uint32>   NrOfNodes    := sum(const(1, NodeSet), PartNr);
+				attribute<uint32>   NrOfNodes    := sum(const(1, NodeSet), part_rel);
 				parameter<uint32>   MaxNrOfNodes := max(NrOfNodes);
 				parameter<.>        Main         := rlookup(MaxNrOfNodes, NrOfNodes); // we assume that the network with the most nodes is the main network.
 			}
 			
-			unit<uint32> NodesNotConnected := select_with_org_rel(networks/partnr <> networks/main)
+			unit<uint32> NodesNotConnected := select_with_org_rel(networks/part_rel <> networks/main)
 			{
 				attribute<rdc> Point := NodeSet/Values[org_rel];
 			}

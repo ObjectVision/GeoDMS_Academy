@@ -18,7 +18,7 @@ container GeoDMS_Academy_Network_Car
 	
 	container Geography: Using = "Units"
 	{
-		unit<fpoint> rdc_base : Format   = "EPSG:28992", DialogData = "wmts_layer";
+		unit<fpoint> rdc_base : SpatialReference   = "EPSG:28992", DialogData = "wmts_layer";
 		unit<fpoint> rdc     := range(rdc_base, point_xy(0f,300000f), point_xy(280000f,625000f));
 		
 		#include<wmts_layer.dms>
