@@ -4,7 +4,7 @@ container basics_understanding_units_result
 	{
 		unit<float32> nr_inh := baseunit('inhabitants', float32);
 
-		unit<float32> m      := baseunit('meter', float32);
+		unit<float32> m      := baseunit('m', float32);
 		unit<float32> km     := 1000 * m;
 
 		unit<float32> s      := baseunit('second', float32);
@@ -19,16 +19,6 @@ container basics_understanding_units_result
 		unit<fpoint> rdc      := range(rdc_base, point_xy(0f, 300000f), point_xy(280000f, 625000f)); // Define a 2D range consisting of 2D cartesian coordinates, later used for the "province" domain unit geometry attribute
 
 		#include<wmts_layer.dms>                                                                // Tiles for background layer
-	}
-
-	container Classifications: Using = "Units" // Container with classification rules for visualization. Using the "Units" container namespace
-	{
-		unit<uint8> province_size: nrofrows = 3 // Domain unit with three rows
-		{
-			attribute<nr_inh> ClassBreaks: [      0, 1000000  ,2000000];                                        // Set classbreaks at given intervals of inhabitants
-			attribute<string> label:       ['small', 'medium' ,'large'];                                        // Semantic labels
-			attribute<uint32> BrushColor:  [rgb(0,255,0),rgb(0,0,255),rgb(255,0,0)], DialogType = "BrushColor"; // Use colors: Green, Blue, Red
-		}
 	}
 
 	container SourceData: Using = "Units"
@@ -48,7 +38,7 @@ container basics_understanding_units_result
 			attribute<Geography/rdc> geometry (poly);        // Obtained from the "provincie.shp" geometry
 			attribute<string>        naam;                   // Obtained from "provincie.dbf [NAAM]"
 			attribute<string>        label := naam;
-			attribute<nr_inh>        inwoners: cdf = "Classifications/province_size/ClassBreaks"; // Obtained from "provincie.dbf [INWONERS]", using visualization based on classes defined in Classification container
+			attribute<nr_inh>        inwoners;               // Obtained from "provincie.dbf [INWONERS]"
 		}
 	}
 

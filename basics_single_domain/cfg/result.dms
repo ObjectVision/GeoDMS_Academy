@@ -1,12 +1,14 @@
 container basics_single_domain_result
 {
 	// Values units
-	unit<float32> nr_inh    := baseunit('inhabitants', float32);
-	unit<float32> m         := baseunit('meter', float32);
-	unit<float32> m2        := m * m;
-	unit<float32> ha        := 10000f * m2;
-	unit<float32> nr_inh_m2 := nr_inh / m2;
-	unit<float32> nr_inh_ha := nr_inh / ha;
+	unit<float32> nr_inh     := baseunit('inhabitants', float32);
+	unit<float32> m          := baseunit('m', float32);
+	unit<float32> m2         := m * m;
+	unit<float32> ha         := 10000f * m2;
+	unit<float32> km2        := 1000000f * m2;
+	unit<float32> nr_inh_m2  := nr_inh / m2;
+	unit<float32> nr_inh_ha  := nr_inh / ha;
+	unit<float32> nr_inh_km2 := nr_inh / km2;
 
 	container Geography // Define the extend of the scene and the projection 
 	{
@@ -31,14 +33,15 @@ container basics_single_domain_result
 	}
 
 	container Results: Using = "SourceData"
-	{	// Values types      attribute name                 domain unit (dimensions of table)
-		attribute<uint32>    nr_capital_per_province        (province) := const(1, province);                  // A table of domain unit province [12x1] with the number of capitals residing in that province, which is always 1, hence the const operator
-		attribute<string>    province_code                  (province) := uppercase(left(province/naam, 2));   // Short province code consisting of the first 2 letters in upper case of each province name
-		attribute<bool>      has_more_than_1mln_inhabitants (province) := province/inwoners > 1000000[nr_inh]; // Check for each province if its inhabitants are larger than 1 milion inhabitants
+	{	// Values types       attribute name                 domain unit (dimensions of table)
+		attribute<uint32>     nr_capital_per_province        (province) := const(1, province);                  // A table of domain unit province [12x1] with the number of capitals residing in that province, which is always 1, hence the const operator
+		attribute<string>     province_code                  (province) := uppercase(left(province/naam, 2));   // Short province code consisting of the first 2 letters in upper case of each province name
+		attribute<bool>       has_more_than_1mln_inhabitants (province) := province/inwoners > 1000000[nr_inh]; // Check for each province if its inhabitants are larger than 1 milion inhabitants
 
 		// Values units
-		attribute<m2>        area                           (province) := area(province/geometry, m2);         // Calculate the area of each province given the geometry as value unit m2
-		attribute<nr_inh_m2> inhabitants_per_m2             (province) := province/inwoners / area;            // Calculate the amount of inhabitants per m2 
-		attribute<nr_inh_ha> inhabitants_per_ha             (province) := inhabitants_per_m2[nr_inh_ha];       // Express the number of inhabitants per ha using the defined nr_inh_ha value unit
+		attribute<m2>         area                           (province) := area(province/geometry, m2);         // Calculate the area of each province given the geometry as value unit m2
+		attribute<nr_inh_m2>  inhabitants_per_m2             (province) := province/inwoners / area;            // Calculate the amount of inhabitants per m2 
+		attribute<nr_inh_ha>  inhabitants_per_ha             (province) := inhabitants_per_m2[nr_inh_ha];       // Express the number of inhabitants per ha using the defined nr_inh_ha value unit
+		attribute<nr_inh_km2> inhabitants_per_km2            (province) := inhabitants_per_m2[nr_inh_km2];      // Express the number of inhabitants per km2 using the defined nr_inh_km2 value unit
 	}
 }

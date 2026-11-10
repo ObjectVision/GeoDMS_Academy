@@ -15,11 +15,11 @@ container basics_classify_and_visualise_result
 
 	container Classifications: Using = "Units"  // namespace, no need to type Units/nr_inh, nr_inh is sufficient
 	{
-		unit<uint8> province_size: nrofrows = 3 // create a domain unit of max uint8 = 2^8 = 256 rows, specified to have 3 rows total
+		unit<uint8> province_size: nrofrows = 4 // create a domain unit of max uint8 = 2^8 = 256 rows, specified to have 4 rows total
 		{   // The created unit also serves as container with attributes specified between the curly braces: {}, domain unit is equal to nrofrows
-			attribute<nr_inh> ClassBreaks : [           0, 1000000      ,  2000000    ];                                        // Visualization purpose, specific classbreaks
-			attribute<string> label       : ['small'     , 'medium'     , 'large'     ];                                        // Semantic labels for the classbreaks
-			attribute<uint32> BrushColor  : [rgb(0,255,0), rgb(0,0,255) , rgb(255,0,0)], DialogType = "BrushColor";             // Color specified for visualization of specific classes
+			attribute<nr_inh> ClassBreaks : [           0, 1000000      ,  2000000    ,  3000000    ], DialogType = "Classification";         // Visualization purpose, specific classbreaks
+			attribute<string> label       : ['small'     , 'medium'     , 'large'     , 'very large'];                                        // Semantic labels for the classbreaks
+			attribute<uint32> BrushColor  : [rgb(0,255,0), rgb(0,0,255) , rgb(255,0,0), rgb(128,0,0)], DialogType = "BrushColor";             // Color specified for visualization of specific classes
 		}
 
 		unit<uint32> landsdeel : nrofrows = 4 // create a domain unit of max uint32 = 2^32 = 4.294.967.296 rows, specified to 4 rows total
@@ -29,10 +29,11 @@ container basics_classify_and_visualise_result
 			attribute<uint32> BrushColor : [rgb(0,255,0),rgb(0,0,255),rgb(255,0,0),rgb(255,255,0)], DialogType = "BrushColor";  // Color specified for visualization of classes
 		}
 
-		unit<uint32> ligging := unique(SourceData/province/ligging) // Create a new unit based on the unique operator, see https://www.geodms.nl/Unique. New domain unit equals the nrofrows of the argument
-		{
-			attribute<string> label      := values; // See https://www.geodms.nl/Unique, values is an attribute returned by the unique operator
-			attribute<uint32> BrushColor : [rgb(0,255,0),rgb(0,0,255),rgb(255,0,0)], DialogType = "BrushColor"; // We know the ligging can only have three unique values hence hardcode the brushcolor
+		unit<uint32> ligging : nrofrows = 3 // create a domain unit of max uint32 = 2^32 = 4.294.967.296 rows, specified to 3 rows total
+		{   // The created unit also serves as container with attributes specified between the curly braces: {}, domain unit is equal to nrofrows
+			attribute<string> code       : ['Noord'     ,'Midden'    ,'Zuid'        ];                                          // Array of strings, later used in rlookup to classify the data
+			attribute<string> label      := code;                                                                               // Semantic labels, here the same as the codes
+			attribute<uint32> BrushColor : [rgb(0,255,0),rgb(0,0,255),rgb(255,0,0)  ], DialogType = "BrushColor";               // Color specified for visualization of classes
 		}
 	}
 
@@ -47,11 +48,11 @@ container basics_classify_and_visualise_result
 			attribute<string>                        naam;                                                                               // name read from the provincie_extra.dbf file
 			attribute<string>                        label             := naam;                                                          // Set label same as name
 			attribute<nr_inh>                        inwoners          : cdf = "Classifications/province_size/ClassBreaks";              // inwoners read from provincie_extra.dbf file, specify how to visualize based on the ClassBreaks we created
-			attribute<Classifications/province_size> province_size_rel := classify(inwoners, Classifications/province_size/ClassBreaks); // See https://www.geodms.nl/Classify, this attribite will be assigned 0, 1 or 2 depending on the interval it belongs to
+			attribute<Classifications/province_size> province_size_rel := classify(inwoners, Classifications/province_size/ClassBreaks); // See https://geodms.nl/docs/classify.html, this attribite will be assigned 0, 1, 2 or 3 depending on the interval it belongs to
 			attribute<uint8>                         landsdeelc;                                                                         // landsdeelc read from provincie_extra.dbf        
-			attribute<Classifications/landsdeel>     landsdeel_rel     := rlookup(landsdeelc, Classifications/landsdeel/code);           // See https://www.geodms.nl/Rlookup, create a relation towards the unique self specified landsdeel codes
+			attribute<Classifications/landsdeel>     landsdeel_rel     := rlookup(landsdeelc, Classifications/landsdeel/code);           // See https://geodms.nl/docs/rlookup.html, create a relation towards the unique self specified landsdeel codes
 			attribute<string>                        ligging;                                                                            // ligging read from provincie_extra.dbf
-			attribute<Classifications/ligging>       ligging_rel       := rlookup(ligging, Classifications/ligging/values);              // See https://www.geodms.nl/Rlookup, create a relation towards the unique occuring ligging strings of SourceData/province/ligging
+			attribute<Classifications/ligging>       ligging_rel       := rlookup(ligging, Classifications/ligging/code);                // See https://geodms.nl/docs/rlookup.html, create a relation towards the self specified ligging codes
 		}
 	}
 }

@@ -12,10 +12,6 @@ container basics_understanding_units_exercise
 		#include<wmts_layer.dms>
 	}
 
-	container Classifications
-	{
-	}
-
 	container SourceData
 	{
 		unit<uint32> highway

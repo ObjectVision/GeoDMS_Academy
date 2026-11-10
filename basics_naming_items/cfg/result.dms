@@ -3,7 +3,7 @@ container basics_naming_items_results
 	container Units
 	{
 		unit<float32> nr_inh := baseunit('inhabitants', float32); // inhabitants is defined as a base unit, to differ it from other float32 coordinates
-		unit<float32> m      := baseunit('meter', float32)  , Descr = "meterunit was redundant and the abbreviation m is advised";
+		unit<float32> m      := baseunit('m', float32)      , Descr = "meterunit was redundant and the abbreviation m is advised";
 		unit<float32> m2     := m * m                       , Descr = "use the lowercase symbol m in stead of M";
 		unit<float32> km     := 1000f * m                   , Descr = "use the symbol k for the factor and m for meter";
 
@@ -23,7 +23,7 @@ container basics_naming_items_results
 	container Geography
 	{
 		unit<fpoint> rdc_base : SpatialReference = "EPSG:28992", DialogData = "wmts_layer";     // Rijksdriehoekstelsel, a 2D cartesian coordinate system for the netherlands
-		unit<fpoint> rdc      := range(rdc_base, point(0f, 300000f), point(280000f, 625000f)); // Define a 2D range consisting of 2D cartesian coordinates, later used for the "province" domain unit geometry attribute
+		unit<fpoint> rdc      := range(rdc_base, point_xy(0f, 300000f), point_xy(280000f, 625000f)); // Define a 2D range consisting of 2D cartesian coordinates, later used for the "province" domain unit geometry attribute
 
 		#include<wmts_layer.dms>                                                               // Tiles for background layer
 	}
@@ -38,7 +38,7 @@ container basics_naming_items_results
 			,	StorageReadOnly = "True"
 			,	Descr           = "The prefix provinces_ is redundant, as the name province is the name of a parent"
 			{
-				attribute<Geography/rdc> geometry (poly): Descr = "The rdc unit could not be found, as it is not configured as subitem of yr2020 or in one of the parents of yr2020. Therefor the Units parent need to be added, as the container Units can be found in the root item.";
+				attribute<Geography/rdc> geometry (poly): Descr = "The rdc unit could not be found, as it is not configured as subitem of yr2020 or in one of the parents of yr2020. Therefor the Geography parent need to be added, as the container Geography can be found in the root item.";
 				attribute<string> naam;
 				attribute<string> label := naam;
 				attribute<Units/nr_inh> inwoners: Descr = "The nr_inh unit could not be found, as it is not configured as subitem of yr2020 or in one of the parents of yr2020. Therefor the Units parent need to be added, as the container Units can be found in the root item.";

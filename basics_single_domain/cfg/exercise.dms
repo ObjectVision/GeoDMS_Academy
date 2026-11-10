@@ -1,11 +1,13 @@
 container basics_single_domain_exercise
 {
-	unit<float32> nr_inh    := baseunit('inhabitants', float32);
-	unit<float32> m         := baseunit('meter', float32);
-	unit<float32> m2        := m * m;
-	unit<float32> ha        := 10000f * m2;
-	unit<float32> nr_inh_m2 := nr_inh / m2;
-	unit<float32> nr_inh_ha := nr_inh / ha;
+	unit<float32> nr_inh     := baseunit('inhabitants', float32);
+	unit<float32> m          := baseunit('m', float32);
+	unit<float32> m2         := m * m;
+	unit<float32> ha         := 10000f * m2;
+	unit<float32> km2        := 1000000f * m2;
+	unit<float32> nr_inh_m2  := nr_inh / m2;
+	unit<float32> nr_inh_ha  := nr_inh / ha;
+	unit<float32> nr_inh_km2 := nr_inh / km2;
 
 	container Geography
 	{

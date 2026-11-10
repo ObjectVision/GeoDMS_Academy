@@ -3,7 +3,7 @@ container basics_naming_items_exercise
 	container Units
 	{
 		unit<float32> nr_inh      := baseunit('inhabitants', float32);
-		unit<float32> meterunit   := baseunit('meter', float32);
+		unit<float32> meterunit   := baseunit('m', float32);
 		unit<float32> M2          := meterunit * meterunit;
 		unit<float32> kilometer   := 1000f * meterunit;
 
@@ -22,7 +22,7 @@ container basics_naming_items_exercise
 	}
 	container Geography
 	{
-		unit<fpoint> rdc_base : SpatialReference = "EPSG:28992", DialogData = "ngr_layer";
+		unit<fpoint> rdc_base : SpatialReference = "EPSG:28992", DialogData = "wmts_layer";
 		unit<fpoint> rdc      := range(rdc_base, point_xy(0f, 300000f), point_xy(280000f, 625000f));
 
 		#include<wmts_layer.dms>

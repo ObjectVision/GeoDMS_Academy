@@ -31,6 +31,6 @@ container basics_multiple_domains_result
 			attribute<uint32> pcount_PC4_in_PC2 := pcount(PC2_Points_rel);                               // Similar to count, assumes relational attribute as parameter
 		}
 
-		attribute<PC2_Points> PC2_Points_rel (SourceData/PC4_points) := rlookup(PC2, PC2_Points/values); // Create a relation pointing from PC4 to a unique list of PC2 (which is defined below) zip-codes
+		attribute<PC2_Points> PC2_Points_rel (SourceData/PC4_points) := rlookup(PC2, PC2_Points/values); // Create a relation pointing from PC4 to a unique list of PC2 (which is defined above) zip-codes
 	}
 }
